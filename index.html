@@ -547,10 +547,10 @@ tr:hover td{background:var(--accent-light);}
         <button class="btn btn-primary" onclick="addAnnounce()">+ บันทึก</button>
       </div>
       <div class="form-row">
-        <div class="field">
-          <label>แนบรูป (ไม่บังคับ — เก็บในเครื่อง)</label>
-          <input type="file" id="an-img" accept="image/*" multiple onchange="previewAnnounceImgs(event)" style="font-size:13px;padding:6px 0;">
-          <div id="an-img-preview" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;"></div>
+        <div class="field" style="flex:2">
+          <label>แนบรูป (Google Drive link — คั่นด้วย , ถ้าหลายรูป)</label>
+          <input type="text" id="an-img-links" placeholder="https://drive.google.com/file/d/... , https://drive.google.com/...">
+          <div style="font-size:11px;color:var(--text3);margin-top:4px;">วิธีได้ link: Drive → คลิกขวารูป → Share → Copy link</div>
         </div>
       </div>
       <div class="msg-ok" id="an-msg"></div>
@@ -1009,14 +1009,7 @@ function loadImgs(){
 }
 
 function saveAnnounce(){
-  // บันทึก announces โดยไม่เอารูปเข้าไป (ประหยัด space)
-  var noImg=announces.map(function(a){
-    var copy=Object.assign({},a);
-    delete copy.imgs;
-    return copy;
-  });
-  try{ localStorage.setItem(ANN_KEY,JSON.stringify(noImg)); }catch(e){}
-  saveImgs();
+  try{ localStorage.setItem(ANN_KEY,JSON.stringify(announces)); }catch(e){}
 }
 
 /* ---- HELPERS ---- */
@@ -1491,32 +1484,7 @@ function openImg(announceId, imgIdx){
 }
 
 /* ---- ANNOUNCE ---- */
-var _announceImgs=[]; // เก็บ base64 รูปชั่วคราวก่อนบันทึก
-
-function previewAnnounceImgs(e){
-  var files=Array.from(e.target.files);
-  _announceImgs=[];
-  var preview=document.getElementById('an-img-preview');
-  preview.innerHTML='';
-  var pending=files.length;
-  if(!pending) return;
-  files.forEach(function(f,fi){
-    var reader=new FileReader();
-    reader.onload=function(ev){
-      _announceImgs[fi]=ev.target.result;
-      var img=document.createElement('img');
-      img.src=ev.target.result;
-      img.style.cssText='width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--border);cursor:pointer;';
-      img.title='คลิกเพื่อลบ';
-      img.onclick=function(){
-        _announceImgs[fi]=null;
-        img.remove();
-      };
-      preview.appendChild(img);
-    };
-    reader.readAsDataURL(f);
-  });
-}
+var _announceImgs=[];
 
 function addAnnounce(){
   var team=document.getElementById('an-team').value;
@@ -1525,18 +1493,27 @@ function addAnnounce(){
   var topic=document.getElementById('an-topic').value.trim();
   var status=document.getElementById('an-status').value;
   var note=document.getElementById('an-note').value.trim();
+  var linksRaw=document.getElementById('an-img-links').value.trim();
   if(!date||!topic){ showMsg('an-msg','กรุณากรอกเรื่องที่แจ้งและวันที่ค่ะ',false); return; }
-  var imgs=_announceImgs.filter(Boolean);
-  announces.push({ id:Date.now(), team:team, channel:channel, date:date, topic:topic, status:status, note:note, imgs:imgs });
+  // แปลง Drive link เป็น direct embed URL
+  var links=linksRaw?linksRaw.split(',').map(function(s){ return driveToEmbed(s.trim()); }).filter(Boolean):[];
+  announces.push({ id:Date.now(), team:team, channel:channel, date:date, topic:topic, status:status, note:note, imgs:links });
   saveAnnounce(); updateCounter();
   apiAdd('announce', announces[announces.length-1]);
   var statusLabel=status==='all'?'รับทราบทุกคน ✓':'บางคนยังไม่รับทราบ';
-  showMsg('an-msg','✓ บันทึกแล้ว — แจ้ง'+teamThai(team)+' ผ่าน'+channelThai(channel)+' ('+statusLabel+')'+(imgs.length?' 📎 '+imgs.length+' รูป':''),true);
+  showMsg('an-msg','✓ บันทึกแล้ว — แจ้ง'+teamThai(team)+' ผ่าน'+channelThai(channel)+' ('+statusLabel+')'+(links.length?' 🔗 '+links.length+' รูป':''),true);
   document.getElementById('an-topic').value='';
   document.getElementById('an-note').value='';
-  document.getElementById('an-img').value='';
-  document.getElementById('an-img-preview').innerHTML='';
-  _announceImgs=[];
+  document.getElementById('an-img-links').value='';
+}
+
+function driveToEmbed(url){
+  if(!url) return '';
+  // แปลง share link เป็น embed/thumbnail URL
+  var m=url.match(/\/file\/d\/([^\/\?]+)/);
+  if(m) return 'https://drive.google.com/thumbnail?id='+m[1]+'&sz=w400';
+  // ถ้าไม่ใช่ Drive link ก็เก็บ URL ตรงๆ
+  return url;
 }
 
 function clearAnnounceFilters(){ ['al-team','al-channel','al-status','al-from','al-to'].forEach(function(id){ document.getElementById(id).value=''; }); renderAnnounceList(); }
@@ -1580,12 +1557,14 @@ function renderAnnounceList(){
     html+='<div class="announce-top"><div class="announce-meta">'+teamBadge(a.team)+channelBadge(a.channel)+'<span class="announce-date">'+fmtThai(a.date)+'</span></div>';
     html+='<button class="btn btn-sm btn-danger" onclick="delAnnounce('+a.id+')">ลบ</button></div>';
     html+='<div class="announce-body">'+esc(a.topic)+'</div>';
-    // แสดงรูป (ถ้ามี)
+    // แสดงรูป/ลิงก์ (ถ้ามี)
     if(a.imgs&&a.imgs.length){
-      html+='<div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0;">';
+      html+='<div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0;">';
       a.imgs.forEach(function(src,ii){
         if(!src) return;
-        html+='<img src="'+src+'" onclick="openImg(\''+a.id+'\','+ii+')" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid var(--border);cursor:pointer;" title="คลิกเพื่อดูรูปใหญ่">';
+        // แปลง thumbnail URL กลับเป็น view URL
+        var viewUrl=src.replace('https://drive.google.com/thumbnail?id=','https://drive.google.com/file/d/').replace('&sz=w400','/view');
+        html+='<a href="'+viewUrl+'" target="_blank" style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;background:var(--biz);color:var(--biz-t);border-radius:20px;font-size:12px;font-weight:500;text-decoration:none;">🖼 รูปที่ '+(ii+1)+'</a>';
       });
       html+='</div>';
     }
