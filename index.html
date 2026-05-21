@@ -243,6 +243,26 @@ tr:hover td{background:var(--accent-light);}
 .sal-table tr:last-child td{border-bottom:none;}
 .sal-highlight{font-weight:600;color:var(--green);}
 .emp-section-title{font-size:13px;font-weight:600;color:var(--text2);margin:20px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+
+/* RISK & KPI */
+.risk-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 18px;margin-bottom:10px;display:flex;gap:14px;align-items:center;cursor:pointer;transition:background .15s;}
+.risk-card:hover{background:var(--accent-light);}
+.risk-badge{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.risk-green{background:#EDFAF3;}
+.risk-yellow{background:#FFFBEB;}
+.risk-red{background:#FEF0F0;}
+.risk-info{flex:1;min-width:0;}
+.risk-name{font-weight:600;font-size:14px;}
+.risk-sub{font-size:12px;color:var(--text2);margin-top:2px;}
+.score-bar-wrap{width:100%;background:var(--surface2);border-radius:20px;height:6px;margin-top:6px;}
+.score-bar{height:6px;border-radius:20px;transition:width .3s;}
+.score-green{background:#2D6A4F;}
+.score-yellow{background:#D97706;}
+.score-red{background:#DC2626;}
+.risk-score{font-size:22px;font-weight:600;flex-shrink:0;min-width:48px;text-align:right;}
+.kpi-row-detail{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;}
+.kpi-chip{background:var(--surface2);border-radius:8px;padding:6px 10px;font-size:12px;text-align:center;}
+.kpi-chip-val{font-weight:600;font-size:14px;display:block;}
 </style>
 </head>
 <body>
@@ -272,6 +292,11 @@ tr:hover td{background:var(--accent-light);}
     <div class="nav-section" style="margin-top:8px">พนักงาน</div>
     <button class="nav-item" onclick="switchPage('emplist')"><span class="nav-icon">👥</span>รายชื่อพนักงาน</button>
     <button class="nav-item" onclick="switchPage('empadd')"><span class="nav-icon">➕</span>เพิ่มพนักงาน</button>
+    <div class="nav-section" style="margin-top:8px">KPI & Performance</div>
+    <button class="nav-item" onclick="switchPage('kpi')"><span class="nav-icon">📊</span>บันทึก KPI รายวัน</button>
+    <button class="nav-item" onclick="switchPage('kpireport')"><span class="nav-icon">📈</span>รายงาน KPI</button>
+    <button class="nav-item" onclick="switchPage('risk')"><span class="nav-icon">🚨</span>Risk Dashboard</button>
+    <button class="nav-item" onclick="switchPage('scoreconfig')"><span class="nav-icon">⚖️</span>ตั้งค่า Score</button>
   </nav>
   <div class="sidebar-footer" id="db-count">—</div>
 </aside>
@@ -678,6 +703,107 @@ tr:hover td{background:var(--accent-light);}
     <div class="msg-ok" id="ea-msg"></div>
   </div>
 
+  <!-- PAGE: บันทึก KPI รายวัน -->
+  <div id="page-kpi" class="page">
+    <div class="page-header"><div class="page-title">บันทึก KPI รายวัน</div><div class="page-desc">กรอกข้อมูลยอดขาย สาย และ order ของพนักงานแต่ละคน</div></div>
+    <div class="card">
+      <div class="card-title">กรอกข้อมูล KPI</div>
+      <div class="form-row">
+        <div class="field"><label>ชื่อพนักงาน</label><input type="text" id="kpi-name" placeholder="ชื่อ-ชื่อเล่น" list="emp-list" autocomplete="off"></div>
+        <div class="field"><label>วันที่</label><input type="date" id="kpi-date"></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>ยอดขาย (บาท)</label><input type="number" id="kpi-sales" placeholder="0" min="0"></div>
+        <div class="field"><label>จำนวนสายที่โทร</label><input type="number" id="kpi-calls" placeholder="0" min="0"></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>Order ที่ปิดได้</label><input type="number" id="kpi-orders" placeholder="0" min="0"></div>
+        <div class="field"><label>ยอด Live (บาท)</label><input type="number" id="kpi-live" placeholder="0" min="0"></div>
+      </div>
+      <div class="form-row">
+        <div class="field" style="flex:2"><label>หมายเหตุ</label><input type="text" id="kpi-note" placeholder="ไม่บังคับ"></div>
+        <button class="btn btn-primary" onclick="addKpi()">+ บันทึก</button>
+      </div>
+      <div class="msg-ok" id="kpi-msg"></div>
+    </div>
+    <div class="card" id="kpi-recent-card" style="display:none">
+      <div class="card-title">รายการล่าสุด</div>
+      <div class="table-wrap" id="kpi-recent-body"></div>
+    </div>
+  </div>
+
+  <!-- PAGE: รายงาน KPI -->
+  <div id="page-kpireport" class="page">
+    <div class="page-header"><div class="page-title">รายงาน KPI</div><div class="page-desc">ดูยอดรวมและเปรียบเทียบรายคน</div></div>
+    <div class="filter-bar">
+      <div class="field"><label>ชื่อ (ว่าง=ทุกคน)</label><input type="text" id="kr-name" placeholder="ทุกคน" oninput="renderKpiReport()"></div>
+      <div class="field"><label>ช่วงเวลา</label>
+        <select id="kr-range" onchange="toggleKpiCustom()">
+          <option value="week">7 วันล่าสุด</option>
+          <option value="month">เดือนนี้</option>
+          <option value="custom">กำหนดเอง</option>
+        </select>
+      </div>
+      <div class="field" id="kr-from-f" style="display:none"><label>จาก</label><input type="date" id="kr-from" onchange="renderKpiReport()"></div>
+      <div class="field" id="kr-to-f" style="display:none"><label>ถึง</label><input type="date" id="kr-to" onchange="renderKpiReport()"></div>
+      <button class="btn btn-sm btn-primary" onclick="renderKpiReport()">ดูข้อมูล</button>
+    </div>
+    <div id="kpireport-body"></div>
+  </div>
+
+  <!-- PAGE: Risk Dashboard -->
+  <div id="page-risk" class="page">
+    <div class="page-header"><div class="page-title">Risk Dashboard</div><div class="page-desc">ภาพรวม Discipline Score และความเสี่ยงของพนักงานทุกคน</div></div>
+    <div class="filter-bar">
+      <div class="field"><label>ช่วงเวลา (ลา/KPI)</label>
+        <select id="risk-range" onchange="toggleRiskCustom()">
+          <option value="month">เดือนนี้</option>
+          <option value="3month">3 เดือนล่าสุด</option>
+          <option value="custom">กำหนดเอง</option>
+        </select>
+      </div>
+      <div class="field" id="risk-from-f" style="display:none"><label>จาก</label><input type="date" id="risk-from"></div>
+      <div class="field" id="risk-to-f" style="display:none"><label>ถึง</label><input type="date" id="risk-to"></div>
+      <button class="btn btn-sm btn-primary" onclick="renderRisk()">คำนวณ</button>
+    </div>
+    <div id="risk-body"></div>
+  </div>
+
+  <!-- PAGE: ตั้งค่า Score -->
+  <div id="page-scoreconfig" class="page">
+    <div class="page-header"><div class="page-title">ตั้งค่า Discipline Score</div><div class="page-desc">ปรับน้ำหนักคะแนนได้ตามต้องการ — คะแนนเริ่มต้น 100</div></div>
+    <div class="card">
+      <div class="card-title">น้ำหนักการหักคะแนน</div>
+      <div class="form-row">
+        <div class="field"><label>ขาดงาน 1 วัน</label><input type="number" id="sc-absent" value="-10" step="1"></div>
+        <div class="field"><label>ลาป่วย 1 วัน</label><input type="number" id="sc-sick" value="-3" step="1"></div>
+        <div class="field"><label>ลากิจ 1 วัน</label><input type="number" id="sc-biz" value="-2" step="1"></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>มาสาย 1 ครั้ง</label><input type="number" id="sc-late" value="-2" step="1"></div>
+        <div class="field"><label>ถูกเรียกคุย 1 ครั้ง</label><input type="number" id="sc-talk" value="-5" step="1"></div>
+        <div class="field"><label>KPI ต่ำกว่าเป้า 1 เดือน</label><input type="number" id="sc-kpi" value="-10" step="1"></div>
+      </div>
+      <div class="card-title" style="margin-top:16px">เป้า KPI รายเดือน (ใช้คำนวณ Risk)</div>
+      <div class="form-row">
+        <div class="field"><label>ยอดขายเป้า (บาท/เดือน)</label><input type="number" id="sc-target-sales" placeholder="0" min="0"></div>
+        <div class="field"><label>สายเป้า (ครั้ง/วัน)</label><input type="number" id="sc-target-calls" placeholder="0" min="0"></div>
+        <div class="field"><label>Order เป้า (ครั้ง/วัน)</label><input type="number" id="sc-target-orders" placeholder="0" min="0"></div>
+      </div>
+      <div class="card-title" style="margin-top:16px">เกณฑ์ระดับความเสี่ยง</div>
+      <div class="form-row">
+        <div class="field"><label>🟢 ดี (คะแนน ≥)</label><input type="number" id="sc-green" value="80" min="0" max="100"></div>
+        <div class="field"><label>🟡 ระวัง (คะแนน ≥)</label><input type="number" id="sc-yellow" value="60" min="0" max="100"></div>
+        <div class="field"><label>🔴 เสี่ยง (คะแนน ต่ำกว่า)</label><input type="number" id="sc-red" value="60" min="0" max="100"></div>
+      </div>
+      <div class="form-row" style="margin-top:8px">
+        <button class="btn btn-primary" onclick="saveScoreConfig()">💾 บันทึกการตั้งค่า</button>
+        <button class="btn" onclick="resetScoreConfig()">↺ รีเซ็ต</button>
+      </div>
+      <div class="msg-ok" id="sc-msg"></div>
+    </div>
+  </div>
+
 </main>
 </div>
 
@@ -704,6 +830,12 @@ tr:hover td{background:var(--accent-light);}
     </button>
     <button class="bnav-item" id="bn-emplist" onclick="switchPage('emplist')">
       <span class="bnav-icon">👥</span><span>พนักงาน</span><span class="bnav-dot"></span>
+    </button>
+    <button class="bnav-item" id="bn-kpi" onclick="switchPage('kpi')">
+      <span class="bnav-icon">📊</span><span>KPI</span><span class="bnav-dot"></span>
+    </button>
+    <button class="bnav-item" id="bn-risk" onclick="switchPage('risk')">
+      <span class="bnav-icon">🚨</span><span>Risk</span><span class="bnav-dot"></span>
     </button>
     <button class="bnav-item" id="bn-report" onclick="switchPage('report')">
       <span class="bnav-icon">◈</span><span>รีพอต</span><span class="bnav-dot"></span>
@@ -747,6 +879,10 @@ function init(){
   try{ var a=localStorage.getItem(ANN_KEY); if(a) announces=JSON.parse(a); }catch(e){ announces=[]; }
   loadImgs(); // คืนรูปกลับเข้า announces
   loadEmps();
+  loadKpi();
+  loadScoreConfig();
+  loadScoreConfigToForm();
+  document.getElementById('kpi-date').value=fmtISO(new Date());
 
   var today=new Date();
   document.getElementById('in-date').value=fmtISO(today);
@@ -1056,14 +1192,15 @@ var _bnavMap={
   plan:'bn-plan',talk:'bn-talklist',talklist:'bn-talklist',
   announce:'bn-announcelist',announcelist:'bn-announcelist',
   settings:'bn-settings',emplist:'bn-emplist',empadd:'bn-emplist',
-  empprofile:'bn-emplist'
+  empprofile:'bn-emplist',kpi:'bn-kpi',kpireport:'bn-kpi',
+  risk:'bn-risk',scoreconfig:'bn-risk'
 };
 function switchPage(p){
   document.querySelectorAll('.page').forEach(function(el){ el.classList.remove('active'); });
   document.querySelectorAll('.nav-item').forEach(function(el){ el.classList.remove('active'); });
   document.querySelectorAll('.bnav-item').forEach(function(el){ el.classList.remove('active'); });
   document.getElementById('page-'+p).classList.add('active');
-  var idx={'add':0,'list':1,'report':2,'summary':3,'plan':4,'talk':5,'talklist':6,'announce':7,'announcelist':8,'settings':9,'emplist':10,'empadd':11}[p];
+  var idx={'add':0,'list':1,'report':2,'summary':3,'plan':4,'talk':5,'talklist':6,'announce':7,'announcelist':8,'settings':9,'emplist':10,'empadd':11,'kpi':12,'kpireport':13,'risk':14,'scoreconfig':15}[p];
   if(idx!==undefined) document.querySelectorAll('.nav-item')[idx].classList.add('active');
   var bnId=_bnavMap[p];
   if(bnId){ var bn=document.getElementById(bnId); if(bn) bn.classList.add('active'); }
@@ -1074,7 +1211,9 @@ function switchPage(p){
   if(p==='announcelist') renderAnnounceList();
   if(p==='emplist') renderEmpList();
   if(p==='empadd'&&!_editEmpId) resetEmpForm();
-  // scroll to top on mobile
+  if(p==='kpireport') renderKpiReport();
+  if(p==='risk') renderRisk();
+  if(p==='kpi') renderKpiRecent();
   window.scrollTo(0,0);
 }
 
@@ -1933,6 +2072,279 @@ function resetEmpForm(){
   ['ea-code','ea-nick','ea-name','ea-pos','ea-phone','ea-bday','ea-start','ea-addr','ea-aliases'].forEach(function(id){ document.getElementById(id).value=''; });
   document.getElementById('ea-team').value='telesales';
   renderSalList();
+}
+
+/* ================================================================
+   KPI & RISK SYSTEM
+   ================================================================ */
+var KPI_KEY='akane_kpi_v1';
+var SCORE_KEY='akane_score_v1';
+var kpiRecords=[];
+var scoreConfig={
+  absent:-10, sick:-3, biz:-2, late:-2, talk:-5, kpi:-10,
+  targetSales:0, targetCalls:0, targetOrders:0,
+  green:80, yellow:60, red:60
+};
+
+function loadKpi(){ try{ var d=localStorage.getItem(KPI_KEY); if(d) kpiRecords=JSON.parse(d); }catch(e){ kpiRecords=[]; } }
+function saveKpi(){ try{ localStorage.setItem(KPI_KEY,JSON.stringify(kpiRecords)); }catch(e){} }
+function loadScoreConfig(){ try{ var d=localStorage.getItem(SCORE_KEY); if(d) scoreConfig=JSON.parse(d); }catch(e){} }
+function saveScoreConfigData(){ try{ localStorage.setItem(SCORE_KEY,JSON.stringify(scoreConfig)); }catch(e){} }
+
+/* ---- KPI ADD ---- */
+function addKpi(){
+  var name=document.getElementById('kpi-name').value.trim();
+  var date=document.getElementById('kpi-date').value;
+  if(!name||!date){ showMsg('kpi-msg','กรุณากรอกชื่อและวันที่ค่ะ',false); return; }
+  var rec={
+    id:Date.now(), name:name, date:date,
+    sales:parseFloat(document.getElementById('kpi-sales').value)||0,
+    calls:parseInt(document.getElementById('kpi-calls').value)||0,
+    orders:parseInt(document.getElementById('kpi-orders').value)||0,
+    live:parseFloat(document.getElementById('kpi-live').value)||0,
+    note:document.getElementById('kpi-note').value.trim()
+  };
+  // replace ถ้าวันเดียวกัน
+  kpiRecords=kpiRecords.filter(function(r){ return !(r.name===name&&r.date===date); });
+  kpiRecords.push(rec);
+  saveKpi();
+  showMsg('kpi-msg','✓ บันทึก KPI ของ '+name+' วันที่ '+fmtThai(date)+' แล้วค่ะ',true);
+  document.getElementById('kpi-name').value='';
+  document.getElementById('kpi-sales').value='';
+  document.getElementById('kpi-calls').value='';
+  document.getElementById('kpi-orders').value='';
+  document.getElementById('kpi-live').value='';
+  document.getElementById('kpi-note').value='';
+  renderKpiRecent();
+}
+
+function renderKpiRecent(){
+  var last=kpiRecords.slice().sort(function(a,b){ return b.id-a.id; }).slice(0,5);
+  var card=document.getElementById('kpi-recent-card');
+  if(!last.length){ card.style.display='none'; return; }
+  card.style.display='block';
+  var html='<table><thead><tr><th>วันที่</th><th>ชื่อ</th><th>ยอดขาย</th><th>สาย</th><th>Order</th><th>Live</th><th></th></tr></thead><tbody>';
+  last.forEach(function(r){
+    html+='<tr><td>'+fmtThai(r.date)+'</td><td>'+r.name+'</td><td>'+fmtMoney(r.sales)+'</td><td>'+r.calls+'</td><td>'+r.orders+'</td><td>'+fmtMoney(r.live)+'</td>';
+    html+='<td><button class="btn btn-sm btn-danger" onclick="delKpi('+r.id+')">ลบ</button></td></tr>';
+  });
+  html+='</tbody></table>';
+  document.getElementById('kpi-recent-body').innerHTML=html;
+}
+
+function delKpi(id){
+  if(!confirm('ลบรายการ KPI นี้?')) return;
+  kpiRecords=kpiRecords.filter(function(r){ return r.id!==id; });
+  saveKpi(); renderKpiRecent();
+}
+
+/* ---- KPI REPORT ---- */
+function toggleKpiCustom(){
+  var v=document.getElementById('kr-range').value;
+  document.getElementById('kr-from-f').style.display=v==='custom'?'block':'none';
+  document.getElementById('kr-to-f').style.display=v==='custom'?'block':'none';
+}
+
+function getKpiRange(){
+  var v=document.getElementById('kr-range').value;
+  var today=new Date();
+  if(v==='week'){ var f=new Date(today); f.setDate(today.getDate()-6); return {from:fmtISO(f),to:fmtISO(today)}; }
+  if(v==='month'){ return {from:fmtISO(new Date(today.getFullYear(),today.getMonth(),1)),to:fmtISO(today)}; }
+  var rf=document.getElementById('kr-from').value, rt=document.getElementById('kr-to').value;
+  if(!rf||!rt){ alert('กรุณาเลือกช่วงวันที่'); return null; }
+  return {from:rf,to:rt};
+}
+
+function renderKpiReport(){
+  var rng=getKpiRange(); if(!rng) return;
+  var rname=document.getElementById('kr-name').value.trim().toLowerCase();
+  var filtered=kpiRecords.filter(function(r){
+    if(rname&&r.name.toLowerCase().indexOf(rname)<0) return false;
+    return r.date>=rng.from&&r.date<=rng.to;
+  });
+  var body=document.getElementById('kpireport-body');
+  if(!filtered.length){ body.innerHTML='<div class="empty">ไม่มีข้อมูล KPI ในช่วงนี้ค่ะ</div>'; return; }
+
+  // สรุปรายคน
+  var byName={};
+  filtered.forEach(function(r){
+    if(!byName[r.name]) byName[r.name]={sales:0,calls:0,orders:0,live:0,days:0};
+    byName[r.name].sales+=r.sales;
+    byName[r.name].calls+=r.calls;
+    byName[r.name].orders+=r.orders;
+    byName[r.name].live+=r.live;
+    byName[r.name].days++;
+  });
+
+  var html='<div class="table-wrap"><table><thead><tr><th>ชื่อ</th><th>วันที่กรอก</th><th>ยอดขายรวม</th><th>สายรวม</th><th>Order รวม</th><th>Live รวม</th></tr></thead><tbody>';
+  Object.keys(byName).sort().forEach(function(nm){
+    var d=byName[nm];
+    html+='<tr><td style="font-weight:500">'+nm+'</td><td>'+d.days+' วัน</td><td style="font-weight:600;color:var(--green)">'+fmtMoney(d.sales)+'</td><td>'+d.calls+'</td><td>'+d.orders+'</td><td>'+fmtMoney(d.live)+'</td></tr>';
+  });
+  html+='</tbody></table></div>';
+
+  // grand total
+  var gt={sales:0,calls:0,orders:0,live:0};
+  Object.values(byName).forEach(function(d){ gt.sales+=d.sales; gt.calls+=d.calls; gt.orders+=d.orders; gt.live+=d.live; });
+  html+='<div class="card" style="margin-top:14px"><div class="card-title">รวมทั้งหมด</div>';
+  html+='<div class="kpi-grid">';
+  html+='<div class="kpi"><div class="kpi-num">'+fmtMoney(gt.sales)+'</div><div class="kpi-label">ยอดขายรวม</div></div>';
+  html+='<div class="kpi"><div class="kpi-num">'+gt.calls+'</div><div class="kpi-label">สายรวม</div></div>';
+  html+='<div class="kpi"><div class="kpi-num">'+gt.orders+'</div><div class="kpi-label">Order รวม</div></div>';
+  html+='<div class="kpi"><div class="kpi-num">'+fmtMoney(gt.live)+'</div><div class="kpi-label">Live รวม</div></div>';
+  html+='</div></div>';
+  body.innerHTML=html;
+}
+
+/* ---- DISCIPLINE SCORE ---- */
+function calcScore(empName, fromDate, toDate){
+  var n=(empName||'').toLowerCase();
+  var score=100;
+
+  // หักจากการลา
+  var empRecs=records.filter(function(r){ return (r.name||'').toLowerCase()===n && r.date>=fromDate && r.date<=toDate; });
+  empRecs.forEach(function(r){
+    if(r.type==='absent') score+=scoreConfig.absent*(r.days||0);
+    else if(r.type==='sick') score+=scoreConfig.sick*(r.days||0);
+    else if(r.type==='biz') score+=scoreConfig.biz*(r.days||0);
+    else if(r.type==='late') score+=scoreConfig.late*(r.lateCount||0);
+  });
+
+  // หักจากการเรียกคุย
+  var empTalks=talks.filter(function(t){ return (t.name||'').toLowerCase()===n && t.date>=fromDate && t.date<=toDate; });
+  score+=scoreConfig.talk*empTalks.length;
+
+  // หักจาก KPI ต่ำกว่าเป้า (ถ้าตั้งเป้าไว้)
+  if(scoreConfig.targetSales>0){
+    var kpiMonth=kpiRecords.filter(function(r){ return (r.name||'').toLowerCase()===n && r.date>=fromDate && r.date<=toDate; });
+    var totalSales=kpiMonth.reduce(function(s,r){ return s+r.sales; },0);
+    if(kpiMonth.length>0 && totalSales<scoreConfig.targetSales) score+=scoreConfig.kpi;
+  }
+
+  return Math.max(0, Math.min(100, Math.round(score)));
+}
+
+function getRiskLevel(score){
+  if(score>=scoreConfig.green) return {level:'green',label:'🟢 ดี',cls:'risk-green',barCls:'score-green'};
+  if(score>=scoreConfig.yellow) return {level:'yellow',label:'🟡 ระวัง',cls:'risk-yellow',barCls:'score-yellow'};
+  return {level:'red',label:'🔴 เสี่ยง',cls:'risk-red',barCls:'score-red'};
+}
+
+function toggleRiskCustom(){
+  var v=document.getElementById('risk-range').value;
+  document.getElementById('risk-from-f').style.display=v==='custom'?'block':'none';
+  document.getElementById('risk-to-f').style.display=v==='custom'?'block':'none';
+}
+
+function getRiskRange(){
+  var v=document.getElementById('risk-range').value;
+  var today=new Date();
+  if(v==='month'){ return {from:fmtISO(new Date(today.getFullYear(),today.getMonth(),1)),to:fmtISO(today)}; }
+  if(v==='3month'){ var f=new Date(today); f.setMonth(f.getMonth()-3); return {from:fmtISO(f),to:fmtISO(today)}; }
+  var rf=document.getElementById('risk-from').value, rt=document.getElementById('risk-to').value;
+  if(!rf||!rt){ alert('กรุณาเลือกช่วงวันที่'); return null; }
+  return {from:rf,to:rt};
+}
+
+function renderRisk(){
+  var rng=getRiskRange(); if(!rng) return;
+  var names=getNames();
+  var body=document.getElementById('risk-body');
+  if(!names.length){ body.innerHTML='<div class="empty">ยังไม่มีข้อมูลพนักงานค่ะ</div>'; return; }
+
+  var results=names.map(function(nm){
+    return { name:nm, score:calcScore(nm,rng.from,rng.to) };
+  }).sort(function(a,b){ return a.score-b.score; }); // เรียงจากเสี่ยงสุด
+
+  // KPI summary
+  var redCount=results.filter(function(r){ return r.score<scoreConfig.red; }).length;
+  var yellowCount=results.filter(function(r){ return r.score>=scoreConfig.red&&r.score<scoreConfig.green; }).length;
+  var greenCount=results.filter(function(r){ return r.score>=scoreConfig.green; }).length;
+
+  var html='<div class="kpi-grid" style="margin-bottom:16px;">';
+  html+='<div class="kpi"><div class="kpi-num" style="color:#DC2626">'+redCount+'</div><div class="kpi-label">🔴 เสี่ยง</div></div>';
+  html+='<div class="kpi"><div class="kpi-num" style="color:#D97706">'+yellowCount+'</div><div class="kpi-label">🟡 ระวัง</div></div>';
+  html+='<div class="kpi"><div class="kpi-num" style="color:#2D6A4F">'+greenCount+'</div><div class="kpi-label">🟢 ดี</div></div>';
+  html+='<div class="kpi"><div class="kpi-num">'+names.length+'</div><div class="kpi-label">ทั้งหมด</div></div>';
+  html+='</div>';
+
+  results.forEach(function(r){
+    var risk=getRiskLevel(r.score);
+    var emp=employees.find(function(e){ return empMatchRecord(e,r.name); });
+    var pos=emp?esc(emp.pos||''):'';
+    var team=emp?teamThai(emp.team||''):'';
+
+    // หาข้อมูลย่อ
+    var empLeaves=records.filter(function(rec){ return (rec.name||'').toLowerCase()===r.name.toLowerCase()&&rec.date>=rng.from&&rec.date<=rng.to; });
+    var talkCount=talks.filter(function(t){ return (t.name||'').toLowerCase()===r.name.toLowerCase()&&t.date>=rng.from&&t.date<=rng.to; }).length;
+    var absent=empLeaves.filter(function(l){ return l.type==='absent'; }).reduce(function(s,l){ return s+l.days; },0);
+    var late=empLeaves.filter(function(l){ return l.type==='late'; }).reduce(function(s,l){ return s+l.lateCount; },0);
+    var kpiData=kpiRecords.filter(function(k){ return (k.name||'').toLowerCase()===r.name.toLowerCase()&&k.date>=rng.from&&k.date<=rng.to; });
+    var totalSales=kpiData.reduce(function(s,k){ return s+k.sales; },0);
+
+    html+='<div class="risk-card" onclick="viewEmpByName(\''+r.name+'\')">';
+    html+='<div class="risk-badge '+risk.cls+'">'+risk.label.split(' ')[0]+'</div>';
+    html+='<div class="risk-info">';
+    html+='<div class="risk-name">'+r.name+(pos?' <span style="font-weight:400;color:var(--text2);font-size:12px">'+pos+'</span>':'')+'</div>';
+    html+='<div class="risk-sub">';
+    if(absent) html+='ขาด '+absent+' วัน · ';
+    if(late) html+='สาย '+late+' ครั้ง · ';
+    if(talkCount) html+='คุย '+talkCount+' ครั้ง · ';
+    if(totalSales) html+='ยอด '+fmtMoney(totalSales);
+    html+='</div>';
+    html+='<div class="score-bar-wrap"><div class="score-bar '+risk.barCls+'" style="width:'+r.score+'%"></div></div>';
+    html+='</div>';
+    html+='<div class="risk-score" style="color:'+(risk.level==='red'?'#DC2626':risk.level==='yellow'?'#D97706':'#2D6A4F')+'">'+r.score+'</div>';
+    html+='</div>';
+  });
+  body.innerHTML=html;
+}
+
+function viewEmpByName(name){
+  var emp=employees.find(function(e){ return empMatchRecord(e,name); });
+  if(emp){ viewEmp(emp.id); }
+  else { alert('ยังไม่มีโปรไฟล์ของ '+name+' ค่ะ — กรุณาเพิ่มพนักงานก่อนนะคะ'); }
+}
+
+/* ---- SCORE CONFIG ---- */
+function saveScoreConfig(){
+  scoreConfig={
+    absent:parseFloat(document.getElementById('sc-absent').value)||0,
+    sick:parseFloat(document.getElementById('sc-sick').value)||0,
+    biz:parseFloat(document.getElementById('sc-biz').value)||0,
+    late:parseFloat(document.getElementById('sc-late').value)||0,
+    talk:parseFloat(document.getElementById('sc-talk').value)||0,
+    kpi:parseFloat(document.getElementById('sc-kpi').value)||0,
+    targetSales:parseFloat(document.getElementById('sc-target-sales').value)||0,
+    targetCalls:parseFloat(document.getElementById('sc-target-calls').value)||0,
+    targetOrders:parseFloat(document.getElementById('sc-target-orders').value)||0,
+    green:parseInt(document.getElementById('sc-green').value)||80,
+    yellow:parseInt(document.getElementById('sc-yellow').value)||60,
+    red:parseInt(document.getElementById('sc-red').value)||60
+  };
+  saveScoreConfigData();
+  showMsg('sc-msg','✓ บันทึกการตั้งค่าแล้วค่ะ',true);
+}
+
+function resetScoreConfig(){
+  if(!confirm('รีเซ็ตค่าทั้งหมดกลับเป็นค่าเริ่มต้น?')) return;
+  scoreConfig={ absent:-10,sick:-3,biz:-2,late:-2,talk:-5,kpi:-10, targetSales:0,targetCalls:0,targetOrders:0, green:80,yellow:60,red:60 };
+  saveScoreConfigData(); loadScoreConfigToForm();
+  showMsg('sc-msg','✓ รีเซ็ตแล้วค่ะ',true);
+}
+
+function loadScoreConfigToForm(){
+  document.getElementById('sc-sick').value=scoreConfig.sick;
+  document.getElementById('sc-biz').value=scoreConfig.biz;
+  document.getElementById('sc-late').value=scoreConfig.late;
+  document.getElementById('sc-talk').value=scoreConfig.talk;
+  document.getElementById('sc-kpi').value=scoreConfig.kpi;
+  document.getElementById('sc-target-sales').value=scoreConfig.targetSales||'';
+  document.getElementById('sc-target-calls').value=scoreConfig.targetCalls||'';
+  document.getElementById('sc-target-orders').value=scoreConfig.targetOrders||'';
+  document.getElementById('sc-green').value=scoreConfig.green;
+  document.getElementById('sc-yellow').value=scoreConfig.yellow;
+  document.getElementById('sc-red').value=scoreConfig.red;
 }
 
 init();
