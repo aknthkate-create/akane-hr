@@ -1,0 +1,1962 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AKANE — HR Tracker</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+:root{
+  --bg:#F7F6F3;--surface:#FFF;--surface2:#F2F0EC;--border:#E2DFD8;--border2:#C8C4BB;
+  --text:#1A1917;--text2:#6B6860;--text3:#A8A49C;--accent:#1A1917;--accent-light:#F0EDE6;
+  --sick:#FFF3E0;--sick-t:#7C4800;--biz:#E8F4FD;--biz-t:#0A4B7C;
+  --vac:#EDFAF3;--vac-t:#1A6B3A;--absent:#FEF0F0;--absent-t:#7C1A1A;
+  --late:#FDF0FA;--late-t:#6B1A5A;--resign:#F1F0FF;--resign-t:#3D2D9C;--green:#2D6A4F;
+  --font:'IBM Plex Sans Thai',sans-serif;--mono:'IBM Plex Mono',monospace;
+  --radius:10px;--radius-lg:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:14px;line-height:1.6;min-height:100vh;}
+.app{display:flex;min-height:100vh;}
+
+/* SIDEBAR */
+.sidebar{width:220px;min-height:100vh;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;flex-shrink:0;overflow-y:auto;}
+.logo{padding:22px 20px 16px;border-bottom:1px solid var(--border);}
+.logo-brand{font-size:13px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--text);display:block;}
+.logo-sub{font-size:11px;color:var(--text3);margin-top:2px;display:block;}
+nav{padding:10px;flex:1;}
+.nav-section{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);padding:10px 12px 4px;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--radius);cursor:pointer;color:var(--text2);font-size:13.5px;font-weight:400;border:none;background:none;width:100%;text-align:left;transition:background .15s,color .15s;margin-bottom:2px;}
+.nav-item:hover{background:var(--surface2);color:var(--text);}
+.nav-item.active{background:var(--accent);color:#fff;font-weight:500;}
+.nav-icon{font-size:14px;opacity:.7;flex-shrink:0;}
+.nav-item.active .nav-icon{opacity:1;}
+.sidebar-footer{padding:14px 20px;border-top:1px solid var(--border);font-size:11px;color:var(--text3);font-family:var(--mono);line-height:1.8;}
+
+/* MAIN */
+.main{flex:1;padding:32px 36px;max-width:920px;}
+.page{display:none;}.page.active{display:block;}
+.page-header{margin-bottom:24px;}
+.page-title{font-size:20px;font-weight:600;letter-spacing:-.02em;}
+.page-desc{font-size:13px;color:var(--text2);margin-top:4px;}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px 22px;margin-bottom:16px;}
+.card-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:16px;}
+
+.form-row{display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap;}
+.field{display:flex;flex-direction:column;gap:5px;flex:1;min-width:130px;}
+.field label{font-size:12px;color:var(--text2);font-weight:500;}
+.field input,.field select,.field textarea{padding:8px 11px;font-size:13.5px;font-family:var(--font);border:1px solid var(--border2);border-radius:var(--radius);background:var(--surface);color:var(--text);outline:none;transition:border-color .15s;}
+.field textarea{resize:vertical;min-height:70px;line-height:1.55;}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent);}
+
+.btn{padding:8px 18px;font-size:13.5px;font-family:var(--font);font-weight:500;border:1px solid var(--border2);border-radius:var(--radius);background:transparent;color:var(--text);cursor:pointer;transition:all .15s;white-space:nowrap;align-self:flex-end;}
+.btn:hover{background:var(--surface2);}
+.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent);}
+.btn-primary:hover{opacity:.88;}
+.btn-sm{padding:4px 10px;font-size:12px;border-radius:7px;}
+.btn-danger{color:#991B1B;border-color:#FECACA;}
+.btn-danger:hover{background:#FEF2F2;}
+.btn-success{background:#1A5C3A;color:#fff;border-color:#1A5C3A;}
+.btn-success:hover{opacity:.88;}
+
+.msg-ok{font-size:12.5px;margin-top:8px;min-height:18px;font-family:var(--mono);}
+
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-bottom:20px;}
+.kpi{background:var(--surface2);border-radius:var(--radius);padding:14px 12px;text-align:center;}
+.kpi-num{font-size:22px;font-weight:600;letter-spacing:-.03em;}
+.kpi-label{font-size:11px;color:var(--text2);margin-top:3px;}
+
+.table-wrap{overflow-x:auto;border-radius:var(--radius);border:1px solid var(--border);}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{text-align:left;padding:10px 14px;font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--text3);background:var(--surface2);border-bottom:1px solid var(--border);}
+td{padding:10px 14px;border-bottom:1px solid var(--border);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:var(--accent-light);}
+
+.badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11.5px;font-weight:500;white-space:nowrap;}
+.badge-sick{background:var(--sick);color:var(--sick-t);}
+.badge-biz{background:var(--biz);color:var(--biz-t);}
+.badge-vac{background:var(--vac);color:var(--vac-t);}
+.badge-absent{background:var(--absent);color:var(--absent-t);}
+.badge-late{background:var(--late);color:var(--late-t);}
+.badge-resign{background:var(--resign);color:var(--resign-t);}
+.badge-leave{background:var(--sick);color:var(--sick-t);}
+.badge-perf{background:var(--biz);color:var(--biz-t);}
+.badge-att{background:#FDF0FA;color:#6B1A5A;}
+.badge-other{background:var(--surface2);color:var(--text2);}
+.badge-face{background:#E8F4FD;color:#0A4B7C;}
+.badge-line{background:#EDFAF3;color:#1A6B3A;}
+
+.filter-bar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:flex-end;}
+.filter-bar .field{flex:0 0 auto;min-width:100px;}
+
+/* REPORT */
+.report-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;font-size:13px;color:var(--text);}
+.report-h{font-weight:600;color:var(--text2);font-size:11px;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;font-family:var(--mono);}
+.report-row{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px dashed var(--border);}
+.report-row:last-child{border-bottom:none;}
+.report-row span:last-child{font-weight:500;font-family:var(--mono);}
+.report-total{display:flex;justify-content:space-between;padding:8px 0 0;font-weight:600;font-size:14px;margin-top:4px;}
+.report-section{margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border);}
+.report-section:last-child{border-bottom:none;}
+.report-emp-name{font-size:15px;font-weight:600;margin-bottom:10px;}
+
+/* TALK CARDS */
+.talk-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 18px;margin-bottom:12px;}
+.talk-card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
+.talk-meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.talk-name{font-weight:600;font-size:14px;}
+.talk-date-lbl{font-size:12px;color:var(--text3);font-family:var(--mono);}
+.talk-body{font-size:13px;color:var(--text);line-height:1.65;}
+.talk-followup{font-size:12.5px;border-top:1px dashed var(--border);padding-top:10px;margin-top:10px;color:var(--text2);}
+.talk-followup-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:4px;}
+
+/* PLAN */
+.plan-date-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;}
+.plan-date-label{font-size:18px;font-weight:600;letter-spacing:-.01em;}
+.plan-stats{display:flex;gap:16px;font-size:13px;color:var(--text2);}
+.plan-stats span b{color:var(--text);font-weight:600;}
+
+.plan-add-row{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;align-items:flex-end;}
+.plan-add-row .field{flex:1;min-width:120px;}
+
+.plan-list{display:flex;flex-direction:column;gap:8px;}
+.plan-item{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);transition:all .2s;}
+.plan-item.done{background:#F9FDF9;border-color:#C6E8D0;opacity:.75;}
+.plan-item.done .plan-item-name{text-decoration:line-through;color:var(--text3);}
+.plan-check{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--border2);background:var(--surface);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;font-size:12px;}
+.plan-check:hover{border-color:var(--green);background:#F0FBF4;}
+.plan-item.done .plan-check{background:var(--green);border-color:var(--green);color:#fff;}
+.plan-item-info{flex:1;min-width:0;}
+.plan-item-name{font-weight:500;font-size:13.5px;}
+.plan-item-meta{display:flex;gap:8px;margin-top:3px;flex-wrap:wrap;}
+.plan-item-actions{display:flex;gap:6px;flex-shrink:0;}
+
+.plan-section-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin:20px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;z-index:999;padding:20px;}
+.modal-overlay.hidden{display:none;}
+.modal{background:var(--surface);border-radius:var(--radius-lg);padding:24px;width:100%;max-width:480px;box-shadow:0 8px 40px rgba(0,0,0,.12);}
+.modal-title{font-size:16px;font-weight:600;margin-bottom:4px;}
+.modal-sub{font-size:13px;color:var(--text2);margin-bottom:20px;}
+.modal-field{display:flex;flex-direction:column;gap:5px;margin-bottom:14px;}
+.modal-field label{font-size:12px;color:var(--text2);font-weight:500;}
+.modal-field select,.modal-field textarea,.modal-field input{padding:8px 11px;font-size:13.5px;font-family:var(--font);border:1px solid var(--border2);border-radius:var(--radius);background:var(--surface);color:var(--text);outline:none;width:100%;}
+.modal-field textarea{resize:vertical;min-height:72px;line-height:1.55;}
+.modal-field select:focus,.modal-field textarea:focus,.modal-field input:focus{border-color:var(--accent);}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:6px;}
+
+.stat-table{width:100%;border-collapse:collapse;font-size:13px;}
+.stat-table th{background:var(--surface2);padding:8px 12px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);border-bottom:1px solid var(--border);text-align:left;}
+.stat-table td{padding:9px 12px;border-bottom:1px solid var(--border);}
+.stat-table tr:last-child td{border-bottom:none;}
+.stat-table tr:hover td{background:var(--accent-light);}
+
+.empty{text-align:center;padding:40px;color:var(--text3);font-size:13px;}
+
+/* ANNOUNCE */
+.announce-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 18px;margin-bottom:12px;}
+.announce-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
+.announce-meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.announce-team{font-weight:600;font-size:14px;}
+.announce-date{font-size:12px;color:var(--text3);font-family:var(--mono);}
+.announce-body{font-size:13px;color:var(--text);line-height:1.65;margin-bottom:8px;}
+.status-ok{display:inline-flex;align-items:center;gap:5px;background:#EDFAF3;color:#1A6B3A;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:500;}
+.status-partial{display:inline-flex;align-items:center;gap:5px;background:#FFF3E0;color:#7C4800;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:500;}
+.badge-team-telesales{background:#E8F4FD;color:#0A4B7C;}
+.badge-team-live{background:#EDFAF3;color:#1A6B3A;}
+.badge-team-content{background:#FDF0FA;color:#6B1A5A;}
+.badge-team-admin{background:#FFF3E0;color:#7C4800;}
+.badge-team-hr{background:#F1F0FF;color:#3D2D9C;}
+.badge-team-all{background:var(--surface2);color:var(--text2);}
+
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+
+@media(max-width:680px){
+  .sidebar{display:none;}
+  .main{padding:16px 14px 80px;}
+  .form-row{gap:8px;}
+  .field{min-width:0;}
+  .kpi-grid{grid-template-columns:repeat(3,1fr);}
+  .profile-grid{grid-template-columns:1fr 1fr;}
+  .card{padding:14px 14px;}
+  .btn{padding:8px 14px;font-size:13px;}
+  table{font-size:12px;}
+  th,td{padding:8px 10px;}
+}
+
+/* BOTTOM NAV (mobile) */
+.bottom-nav{
+  display:none;
+  position:fixed;
+  bottom:0;left:0;right:0;
+  background:var(--surface);
+  border-top:1px solid var(--border);
+  z-index:100;
+  padding:0;
+  box-shadow:0 -2px 12px rgba(0,0,0,.08);
+}
+.bottom-nav-inner{
+  display:flex;
+  overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:none;
+}
+.bottom-nav-inner::-webkit-scrollbar{display:none;}
+.bnav-item{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:2px;padding:8px 14px;cursor:pointer;
+  border:none;background:none;color:var(--text3);
+  font-family:var(--font);font-size:10px;font-weight:500;
+  white-space:nowrap;min-width:60px;flex-shrink:0;
+  transition:color .15s;
+}
+.bnav-item.active{color:var(--text);}
+.bnav-item .bnav-icon{font-size:20px;line-height:1;}
+.bnav-dot{width:4px;height:4px;border-radius:50%;background:var(--accent);margin-top:1px;opacity:0;}
+.bnav-item.active .bnav-dot{opacity:1;}
+
+@media(max-width:680px){
+  .bottom-nav{display:block;}
+}
+
+/* EMPLOYEE */
+.emp-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 18px;margin-bottom:10px;display:flex;gap:16px;align-items:flex-start;cursor:pointer;transition:background .15s;}
+.emp-card:hover{background:var(--accent-light);}
+.emp-avatar{width:44px;height:44px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:600;flex-shrink:0;}
+.emp-info{flex:1;min-width:0;}
+.emp-nick{font-weight:600;font-size:15px;}
+.emp-sub{font-size:12.5px;color:var(--text2);margin-top:2px;}
+.emp-badges{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;}
+.profile-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;}
+@media(max-width:580px){.profile-grid{grid-template-columns:1fr;}}
+.profile-item{background:var(--surface2);border-radius:var(--radius);padding:12px 14px;}
+.profile-label{font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;}
+.profile-value{font-size:14px;color:var(--text);font-weight:500;}
+.sal-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:4px;}
+.sal-table th{text-align:left;padding:7px 12px;font-size:11px;font-weight:600;text-transform:uppercase;color:var(--text3);background:var(--surface2);border-bottom:1px solid var(--border);}
+.sal-table td{padding:9px 12px;border-bottom:1px solid var(--border);}
+.sal-table tr:last-child td{border-bottom:none;}
+.sal-highlight{font-weight:600;color:var(--green);}
+.emp-section-title{font-size:13px;font-weight:600;color:var(--text2);margin:20px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="logo">
+    <span class="logo-brand">AKANE HR</span>
+    <span class="logo-sub">ระบบติดตามพนักงาน</span>
+  </div>
+  <nav>
+    <div class="nav-section">การลา</div>
+    <button class="nav-item active" onclick="switchPage('add')"><span class="nav-icon">✦</span>บันทึกการลา</button>
+    <button class="nav-item" onclick="switchPage('list')"><span class="nav-icon">☰</span>รายการทั้งหมด</button>
+    <button class="nav-item" onclick="switchPage('report')"><span class="nav-icon">◈</span>รีพอตสรุป</button>
+    <button class="nav-item" onclick="switchPage('summary')"><span class="nav-icon">◉</span>ภาพรวมรายคน</button>
+    <div class="nav-section" style="margin-top:8px">พฤติกรรม</div>
+    <button class="nav-item" onclick="switchPage('plan')"><span class="nav-icon">📅</span>แพลนการคุย</button>
+    <button class="nav-item" onclick="switchPage('talk')"><span class="nav-icon">💬</span>บันทึกการเรียกคุย</button>
+    <button class="nav-item" onclick="switchPage('talklist')"><span class="nav-icon">📋</span>ประวัติการคุย</button>
+    <div class="nav-section" style="margin-top:8px">แจ้งทีม</div>
+    <button class="nav-item" onclick="switchPage('announce')"><span class="nav-icon">📣</span>แจ้งทีม</button>
+    <button class="nav-item" onclick="switchPage('announcelist')"><span class="nav-icon">🗂️</span>ประวัติการแจ้ง</button>
+    <div class="nav-section" style="margin-top:8px">ระบบ</div>
+    <button class="nav-item" onclick="switchPage('settings')"><span class="nav-icon">⚙️</span>ตั้งค่า / Sync</button>
+    <div class="nav-section" style="margin-top:8px">พนักงาน</div>
+    <button class="nav-item" onclick="switchPage('emplist')"><span class="nav-icon">👥</span>รายชื่อพนักงาน</button>
+    <button class="nav-item" onclick="switchPage('empadd')"><span class="nav-icon">➕</span>เพิ่มพนักงาน</button>
+  </nav>
+  <div class="sidebar-footer" id="db-count">—</div>
+</aside>
+
+<main class="main">
+
+  <!-- PAGE: บันทึกการลา -->
+  <div id="page-add" class="page active">
+    <div class="page-header"><div class="page-title">บันทึกการลา</div><div class="page-desc">เพิ่มข้อมูลการลาพนักงานทีละรายการ</div></div>
+    <div class="card">
+      <div class="card-title">ข้อมูลการลา</div>
+      <div class="form-row">
+        <div class="field"><label>ชื่อพนักงาน</label><input type="text" id="in-name" placeholder="ชื่อ-ชื่อเล่น" list="emp-list" autocomplete="off"><datalist id="emp-list"></datalist></div>
+        <div class="field"><label>วันที่</label><input type="date" id="in-date"></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>ประเภท</label>
+          <select id="in-type" onchange="toggleDaysCnt()">
+            <option value="sick">ลาป่วย</option><option value="biz">ลากิจ</option>
+            <option value="vac">ลาพักร้อน</option><option value="absent">ขาดงาน</option><option value="late">มาสาย</option><option value="resign">ลาออก</option>
+          </select>
+        </div>
+        <div class="field" id="f-days"><label>จำนวนวัน</label><input type="number" id="in-days" value="1" min="0.5" step="0.5" style="max-width:100px"></div>
+        <div class="field" id="f-late" style="display:none"><label>จำนวนครั้ง</label><input type="number" id="in-late" value="1" min="1" step="1" style="max-width:100px"></div>
+        <button class="btn btn-primary" onclick="addRecord()">+ บันทึก</button>
+      </div>
+      <div class="msg-ok" id="add-msg"></div>
+    </div>
+    <div class="card" id="recent-card" style="display:none">
+      <div class="card-title">รายการล่าสุด</div>
+      <div class="table-wrap"><table><thead><tr><th>วันที่</th><th>ชื่อ</th><th>ประเภท</th><th>จำนวน</th><th></th></tr></thead><tbody id="recent-body"></tbody></table></div>
+    </div>
+  </div>
+
+  <!-- PAGE: รายการทั้งหมด -->
+  <div id="page-list" class="page">
+    <div class="page-header"><div class="page-title">รายการทั้งหมด</div><div class="page-desc">ดู ค้นหา และลบข้อมูลการลา</div></div>
+    <div class="filter-bar">
+      <div class="field"><label>ชื่อ</label><input type="text" id="f-name" placeholder="ทุกคน" oninput="renderList()"></div>
+      <div class="field"><label>ประเภท</label>
+        <select id="f-type" onchange="renderList()">
+          <option value="">ทุกประเภท</option><option value="sick">ลาป่วย</option><option value="biz">ลากิจ</option>
+          <option value="vac">ลาพักร้อน</option><option value="absent">ขาดงาน</option><option value="late">มาสาย</option><option value="resign">ลาออก</option>
+        </select>
+      </div>
+      <div class="field"><label>จากวันที่</label><input type="date" id="f-from" onchange="renderList()"></div>
+      <div class="field"><label>ถึงวันที่</label><input type="date" id="f-to" onchange="renderList()"></div>
+      <button class="btn btn-sm" onclick="clearFilters()">ล้าง</button>
+    </div>
+    <div id="list-kpi" class="kpi-grid" style="display:none"></div>
+    <div class="table-wrap" id="list-wrap"></div>
+  </div>
+
+  <!-- PAGE: รีพอตสรุป -->
+  <div id="page-report" class="page">
+    <div class="page-header"><div class="page-title">รีพอตสรุป</div><div class="page-desc">สรุปตัวเลขการลา + บันทึกการคุย ตามช่วงเวลา</div></div>
+    <div class="card">
+      <div class="card-title">เลือกช่วงเวลา</div>
+      <div class="form-row">
+        <div class="field"><label>ชื่อพนักงาน (ว่าง = ทุกคน)</label><input type="text" id="r-name" placeholder="ทุกคน" list="emp-list2" autocomplete="off"><datalist id="emp-list2"></datalist></div>
+        <div class="field"><label>ช่วงเวลา</label>
+          <select id="r-range" onchange="toggleCustomRange()">
+            <option value="week">7 วันล่าสุด</option><option value="month">เดือนนี้</option><option value="custom">กำหนดเอง</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row" id="custom-row" style="display:none">
+        <div class="field"><label>จากวันที่</label><input type="date" id="r-from"></div>
+        <div class="field"><label>ถึงวันที่</label><input type="date" id="r-to"></div>
+      </div>
+      <div class="form-row"><button class="btn btn-primary" onclick="genReport()">สรุปรีพอต</button></div>
+    </div>
+    <div id="report-out"></div>
+  </div>
+
+  <!-- PAGE: ภาพรวมรายคน -->
+  <div id="page-summary" class="page">
+    <div class="page-header"><div class="page-title">ภาพรวมรายคน</div><div class="page-desc">ตารางสรุปการลา + จำนวนครั้งที่เรียกคุย</div></div>
+    <div class="filter-bar">
+      <div class="field"><label>ช่วงเวลา</label>
+        <select id="s-range" onchange="toggleSummaryCustom()">
+          <option value="week">7 วันล่าสุด</option><option value="month">เดือนนี้</option><option value="custom">กำหนดเอง</option>
+        </select>
+      </div>
+      <div class="field" id="s-from-f" style="display:none"><label>จาก</label><input type="date" id="s-from"></div>
+      <div class="field" id="s-to-f" style="display:none"><label>ถึง</label><input type="date" id="s-to"></div>
+      <button class="btn btn-sm btn-primary" onclick="renderSummary()">ดูข้อมูล</button>
+    </div>
+    <div class="table-wrap" id="summary-wrap"></div>
+  </div>
+
+  <!-- PAGE: แพลนการคุย -->
+  <div id="page-plan" class="page">
+    <div class="page-header">
+      <div class="page-title">แพลนการคุย</div>
+      <div class="page-desc">วางแผนว่าวันนี้จะเรียกคุยกับใคร — ติ๊กเสร็จแล้วบันทึกสรุปได้เลย</div>
+    </div>
+
+    <!-- เพิ่มรายการแพลน -->
+    <div class="card">
+      <div class="card-title">เพิ่มรายการ</div>
+      <div class="plan-add-row">
+        <div class="field"><label>ชื่อพนักงาน</label><input type="text" id="pl-name" placeholder="ชื่อ-ชื่อเล่น" list="emp-list3" autocomplete="off"><datalist id="emp-list3"></datalist></div>
+        <div class="field"><label>หัวข้อที่จะคุย</label>
+          <select id="pl-topic">
+            <option value="leave">การลา / ขาด / มาสาย</option>
+            <option value="perf">ผลงาน / ยอดขาย / KPI</option>
+            <option value="att">ทัศนคติ / พฤติกรรม</option>
+            <option value="other">อื่น ๆ</option>
+          </select>
+        </div>
+        <div class="field"><label>ช่องทาง</label>
+          <select id="pl-channel">
+            <option value="face">ส่วนตัว (พบหน้า)</option>
+            <option value="line">LINE</option>
+          </select>
+        </div>
+        <div class="field"><label>หมายเหตุ (ไม่บังคับ)</label><input type="text" id="pl-note" placeholder="ประเด็นที่อยากพูดถึง..."></div>
+        <button class="btn btn-primary" onclick="addPlan()">+ เพิ่ม</button>
+      </div>
+      <div class="msg-ok" id="plan-msg"></div>
+    </div>
+
+    <!-- รายการวันนี้ -->
+    <div id="plan-body"></div>
+  </div>
+
+  <!-- PAGE: บันทึกการเรียกคุย -->
+  <div id="page-talk" class="page">
+    <div class="page-header"><div class="page-title">บันทึกการเรียกคุย</div><div class="page-desc">จดบันทึกการพูดคุย พฤติกรรม และ follow up</div></div>
+    <div class="card">
+      <div class="card-title">ข้อมูลการเรียกคุย</div>
+      <div class="form-row">
+        <div class="field"><label>ชื่อพนักงาน</label><input type="text" id="tk-name" placeholder="ชื่อ-ชื่อเล่น" list="emp-list4" autocomplete="off"><datalist id="emp-list4"></datalist></div>
+        <div class="field"><label>วันที่คุย</label><input type="date" id="tk-date"></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>หัวข้อ</label>
+          <select id="tk-topic">
+            <option value="leave">การลา / ขาด / มาสาย</option><option value="perf">ผลงาน / ยอดขาย / KPI</option>
+            <option value="att">ทัศนคติ / พฤติกรรม</option><option value="other">อื่น ๆ</option>
+          </select>
+        </div>
+        <div class="field"><label>ช่องทาง</label>
+          <select id="tk-channel">
+            <option value="face">ส่วนตัว (พบหน้า)</option>
+            <option value="line">LINE</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field" style="flex:2;min-width:220px"><label>สรุปการคุย</label><textarea id="tk-summary" placeholder="คุยเรื่องอะไร ผลเป็นยังไง รับทราบหรือเปล่า..."></textarea></div>
+      </div>
+      <div class="form-row">
+        <div class="field" style="flex:2;min-width:220px"><label>สิ่งที่ตกลง / Follow up</label><textarea id="tk-followup" placeholder="จะติดตามเรื่องอะไร ภายในเมื่อไร..." style="min-height:56px"></textarea></div>
+        <button class="btn btn-primary" onclick="addTalk()">+ บันทึก</button>
+      </div>
+      <div class="msg-ok" id="talk-msg"></div>
+    </div>
+  </div>
+
+  <!-- PAGE: ประวัติการคุย -->
+  <div id="page-talklist" class="page">
+    <div class="page-header"><div class="page-title">ประวัติการคุย</div><div class="page-desc">บันทึกการเรียกคุยและพฤติกรรมพนักงานทั้งหมด</div></div>
+    <div class="filter-bar">
+      <div class="field"><label>ชื่อ</label><input type="text" id="tl-name" placeholder="ทุกคน" oninput="renderTalkList()"></div>
+      <div class="field"><label>หัวข้อ</label>
+        <select id="tl-topic" onchange="renderTalkList()">
+          <option value="">ทุกหัวข้อ</option><option value="leave">การลา/ขาด/สาย</option>
+          <option value="perf">ผลงาน/KPI</option><option value="att">ทัศนคติ/พฤติกรรม</option><option value="other">อื่น ๆ</option>
+        </select>
+      </div>
+      <div class="field"><label>ช่องทาง</label>
+        <select id="tl-channel" onchange="renderTalkList()">
+          <option value="">ทุกช่องทาง</option><option value="face">ส่วนตัว</option><option value="line">LINE</option>
+        </select>
+      </div>
+      <div class="field"><label>จากวันที่</label><input type="date" id="tl-from" onchange="renderTalkList()"></div>
+      <div class="field"><label>ถึงวันที่</label><input type="date" id="tl-to" onchange="renderTalkList()"></div>
+      <button class="btn btn-sm" onclick="clearTalkFilters()">ล้าง</button>
+    </div>
+    <div id="talklist-kpi" class="kpi-grid" style="display:none"></div>
+    <div id="talklist-body"></div>
+  </div>
+
+  <!-- PAGE: ตั้งค่า -->
+  <div id="page-settings" class="page">
+    <div class="page-header"><div class="page-title">ตั้งค่า / Sync</div><div class="page-desc">เชื่อม Google Sheets เพื่อเก็บข้อมูลถาวรและแชร์กับพี่หมิวได้</div></div>
+
+    <div style="background:#EDFAF3;border:1px solid #6EE7B7;border-radius:var(--radius-lg);padding:14px 18px;margin-bottom:16px;font-size:13px;line-height:1.8">
+      <b>✓ เปิดจาก Desktop ได้เลย</b> — ระบบใช้ JSONP เชื่อมกับ Google Sheets โดยตรง ไม่ติด CORS ค่ะ<br>
+      เพียงแค่วาง Apps Script URL แล้วกด <b>บันทึก URL</b> ด้านล่าง ข้อมูลจะ Sync อัตโนมัติทุกครั้งที่เปิดไฟล์
+    </div>
+
+    <div class="card">
+      <div class="card-title">เชื่อม Google Sheets (Kate — แก้ไขได้)</div>
+      <div style="font-size:13px;color:var(--text2);margin-bottom:14px;line-height:1.8">
+        วาง <b>Apps Script URL</b> ที่ได้จากการ Deploy แล้วกด <b>บันทึกและ Sync</b><br>
+        ข้อมูลทั้งหมดจะถูกดึงจาก Google Sheets ทุกครั้งที่เปิดหน้าเว็บ
+      </div>
+      <div class="form-row">
+        <div class="field" style="flex:3"><label>Apps Script URL (exec)</label><input type="text" id="gs-url" placeholder="https://script.google.com/macros/s/.../exec"></div>
+        <button class="btn btn-primary" onclick="saveGsUrl()">บันทึก URL</button>
+      </div>
+      <div class="msg-ok" id="gs-msg"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Link สำหรับพี่หมิว (ดูอย่างเดียว)</div>
+      <div style="font-size:13px;color:var(--text2);margin-bottom:14px;line-height:1.8">
+        ส่ง URL นี้ให้พี่หมิว — เปิดดูข้อมูลได้เลย ไม่สามารถแก้ไขได้
+      </div>
+      <div id="readonly-url-box" style="background:var(--surface2);border-radius:var(--radius);padding:12px 14px;font-family:var(--mono);font-size:12px;color:var(--text2);word-break:break-all;">
+        กรุณากรอก Apps Script URL ก่อนค่ะ
+      </div>
+      <button class="btn btn-sm" style="margin-top:10px" onclick="copyReadonlyUrl()">คัดลอก Link</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Sync ข้อมูล</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <button class="btn btn-primary" onclick="syncAll()">⬇ ดึงข้อมูลจาก Sheets</button>
+        <button class="btn" onclick="pushAll()">⬆ อัปโหลดข้อมูลไป Sheets</button>
+        <span id="sync-status" style="font-size:12px;color:var(--text3);font-family:var(--mono)"></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Export / Import ข้อมูล (สำรอง)</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn" onclick="exportJSON()">⬇ Export JSON</button>
+        <label class="btn" style="cursor:pointer">⬆ Import JSON<input type="file" accept=".json" onchange="importJSON(event)" style="display:none"></label>
+      </div>
+      <div style="font-size:12px;color:var(--text3);margin-top:8px">ใช้สำรองข้อมูลไว้ในเครื่อง หรือโอนย้ายระหว่างคอมค่ะ</div>
+    </div>
+  </div>
+
+  <!-- PAGE: แจ้งทีม -->
+  <div id="page-announce" class="page">
+    <div class="page-header"><div class="page-title">แจ้งทีม</div><div class="page-desc">บันทึกการแจ้งข้อมูล นโยบาย หรือเรื่องสำคัญให้ทีม</div></div>
+    <div class="card">
+      <div class="card-title">รายละเอียดการแจ้ง</div>
+      <div class="form-row">
+        <div class="field"><label>ทีม</label>
+          <select id="an-team">
+            <option value="telesales">Telesales</option>
+            <option value="live">Live Streaming</option>
+            <option value="content">Content</option>
+            <option value="admin">Admin</option>
+            <option value="hr">HR / Office</option>
+            <option value="all">ทุกทีม</option>
+          </select>
+        </div>
+        <div class="field"><label>ช่องทาง</label>
+          <select id="an-channel">
+            <option value="line">LINE</option>
+            <option value="face">พบหน้า</option>
+          </select>
+        </div>
+        <div class="field"><label>วันที่แจ้ง</label><input type="date" id="an-date"></div>
+      </div>
+      <div class="form-row">
+        <div class="field" style="flex:2;min-width:220px"><label>เรื่องที่แจ้ง</label><textarea id="an-topic" placeholder="เช่น นโยบายการลา, เป้ายอดประจำเดือน, เวลาเข้างาน..."></textarea></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>สถานะการรับทราบ</label>
+          <select id="an-status">
+            <option value="all">รับทราบทุกคน ✓</option>
+            <option value="partial">บางคนยังไม่รับทราบ</option>
+          </select>
+        </div>
+        <div class="field" style="flex:2"><label>หมายเหตุ (ไม่บังคับ)</label><input type="text" id="an-note" placeholder="เช่น ส่ง LINE ไปแล้ว รอ confirm..."></div>
+        <button class="btn btn-primary" onclick="addAnnounce()">+ บันทึก</button>
+      </div>
+      <div class="form-row">
+        <div class="field">
+          <label>แนบรูป (ไม่บังคับ — เก็บในเครื่อง)</label>
+          <input type="file" id="an-img" accept="image/*" multiple onchange="previewAnnounceImgs(event)" style="font-size:13px;padding:6px 0;">
+          <div id="an-img-preview" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;"></div>
+        </div>
+      </div>
+      <div class="msg-ok" id="an-msg"></div>
+    </div>
+  </div>
+
+  <!-- PAGE: ประวัติการแจ้ง -->
+  <div id="page-announcelist" class="page">
+    <div class="page-header"><div class="page-title">ประวัติการแจ้ง</div><div class="page-desc">ดูบันทึกการแจ้งทีมทั้งหมด</div></div>
+    <div class="filter-bar">
+      <div class="field"><label>ทีม</label>
+        <select id="al-team" onchange="renderAnnounceList()">
+          <option value="">ทุกทีม</option>
+          <option value="telesales">Telesales</option>
+          <option value="live">Live Streaming</option>
+          <option value="content">Content</option>
+          <option value="admin">Admin</option>
+          <option value="hr">HR / Office</option>
+          <option value="all">ทุกทีม (ประกาศทั่วไป)</option>
+        </select>
+      </div>
+      <div class="field"><label>ช่องทาง</label>
+        <select id="al-channel" onchange="renderAnnounceList()">
+          <option value="">ทุกช่องทาง</option><option value="line">LINE</option><option value="face">พบหน้า</option>
+        </select>
+      </div>
+      <div class="field"><label>สถานะ</label>
+        <select id="al-status" onchange="renderAnnounceList()">
+          <option value="">ทั้งหมด</option><option value="all">รับทราบทุกคน</option><option value="partial">ยังไม่รับทราบครบ</option>
+        </select>
+      </div>
+      <div class="field"><label>จากวันที่</label><input type="date" id="al-from" onchange="renderAnnounceList()"></div>
+      <div class="field"><label>ถึงวันที่</label><input type="date" id="al-to" onchange="renderAnnounceList()"></div>
+      <button class="btn btn-sm" onclick="clearAnnounceFilters()">ล้าง</button>
+    </div>
+    <div id="announcelist-kpi" class="kpi-grid" style="display:none"></div>
+    <div id="announcelist-body"></div>
+  </div>
+
+  <!-- PAGE: รายชื่อพนักงาน -->
+  <div id="page-emplist" class="page">
+    <div class="page-header"><div class="page-title">รายชื่อพนักงาน</div><div class="page-desc">ค้นหาและดูโปรไฟล์พนักงานทุกคน</div></div>
+    <div class="filter-bar">
+      <div class="field"><label>ค้นหา</label><input type="text" id="el-search" placeholder="ชื่อ / รหัส / ตำแหน่ง" oninput="renderEmpList()"></div>
+      <div class="field"><label>ทีม</label>
+        <select id="el-team" onchange="renderEmpList()">
+          <option value="">ทุกทีม</option>
+          <option value="telesales">Telesales</option>
+          <option value="live">Live Streaming</option>
+          <option value="content">Content</option>
+          <option value="admin">Admin</option>
+          <option value="hr">HR / Office</option>
+        </select>
+      </div>
+      <button class="btn btn-sm" onclick="switchPage('empadd')">+ เพิ่มพนักงาน</button>
+    </div>
+    <div id="emplist-body"></div>
+  </div>
+
+  <!-- PAGE: โปรไฟล์พนักงาน (ดูรายคน) -->
+  <div id="page-empprofile" class="page">
+    <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;">
+      <div>
+        <button class="btn btn-sm" onclick="switchPage('emplist')" style="margin-bottom:10px">← กลับ</button>
+        <div class="page-title" id="pp-title">โปรไฟล์พนักงาน</div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-sm" onclick="editEmp()">✏️ แก้ไข</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteEmp()">ลบ</button>
+      </div>
+    </div>
+    <div id="pp-body"></div>
+  </div>
+
+  <!-- PAGE: เพิ่ม/แก้ไขพนักงาน -->
+  <div id="page-empadd" class="page">
+    <div class="page-header"><div class="page-title" id="ea-title">เพิ่มพนักงาน</div><div class="page-desc">กรอกข้อมูลพนักงาน</div></div>
+    <div class="card">
+      <div class="card-title">ข้อมูลทั่วไป</div>
+      <div class="form-row">
+        <div class="field"><label>รหัสพนักงาน</label><input type="text" id="ea-code" placeholder="เช่น AK001"></div>
+        <div class="field"><label>ชื่อเล่น *</label><input type="text" id="ea-nick" placeholder="ชื่อเล่น"></div>
+        <div class="field"><label>ชื่อ-นามสกุล *</label><input type="text" id="ea-name" placeholder="ชื่อจริง นามสกุล"></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>ตำแหน่ง</label><input type="text" id="ea-pos" placeholder="เช่น Telesales, Content Creator"></div>
+        <div class="field"><label>ทีม</label>
+          <select id="ea-team">
+            <option value="telesales">Telesales</option>
+            <option value="live">Live Streaming</option>
+            <option value="content">Content</option>
+            <option value="admin">Admin</option>
+            <option value="hr">HR / Office</option>
+          </select>
+        </div>
+        <div class="field"><label>เบอร์โทร</label><input type="text" id="ea-phone" placeholder="0812345678"></div>
+      </div>
+      <div class="form-row">
+        <div class="field" style="flex:2"><label>ชื่อที่ใช้บันทึกในระบบ <span style="color:var(--text3);font-weight:400">(ถ้าต่างจากชื่อเล่น — คั่นด้วย , )</span></label>
+          <input type="text" id="ea-aliases" placeholder="เช่น มุก, มุกมิก, Mook — ใส่ทุกชื่อที่เคยกรอกไว้"></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>วันเกิด</label><input type="date" id="ea-bday"></div>
+        <div class="field"><label>วันเริ่มงาน</label><input type="date" id="ea-start"></div>
+      </div>
+      <div class="form-row">
+        <div class="field" style="flex:2"><label>ที่อยู่</label><textarea id="ea-addr" placeholder="บ้านเลขที่ ถนน ตำบล อำเภอ จังหวัด" style="min-height:56px"></textarea></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">เงินเดือน — เพิ่มรายการ</div>
+      <div class="form-row">
+        <div class="field"><label>เดือน / ปี</label><input type="month" id="ea-sal-month"></div>
+        <div class="field"><label>จำนวนเงิน (บาท)</label><input type="number" id="ea-sal-amount" placeholder="0" min="0" step="100"></div>
+        <button class="btn" onclick="addSalaryRow()" style="align-self:flex-end">+ เพิ่ม</button>
+      </div>
+      <div id="ea-sal-list" style="margin-top:8px"></div>
+    </div>
+
+    <div class="form-row" style="margin-top:4px">
+      <button class="btn btn-primary" onclick="saveEmp()">💾 บันทึก</button>
+      <button class="btn" onclick="switchPage('emplist')">ยกเลิก</button>
+    </div>
+    <div class="msg-ok" id="ea-msg"></div>
+  </div>
+
+</main>
+</div>
+
+<!-- BOTTOM NAV (mobile) -->
+<nav class="bottom-nav">
+  <div class="bottom-nav-inner">
+    <button class="bnav-item active" id="bn-add" onclick="switchPage('add')">
+      <span class="bnav-icon">✦</span><span>บันทึกลา</span><span class="bnav-dot"></span>
+    </button>
+    <button class="bnav-item" id="bn-list" onclick="switchPage('list')">
+      <span class="bnav-icon">☰</span><span>รายการ</span><span class="bnav-dot"></span>
+    </button>
+    <button class="bnav-item" id="bn-summary" onclick="switchPage('summary')">
+      <span class="bnav-icon">◉</span><span>ภาพรวม</span><span class="bnav-dot"></span>
+    </button>
+    <button class="bnav-item" id="bn-plan" onclick="switchPage('plan')">
+      <span class="bnav-icon">📅</span><span>แพลน</span><span class="bnav-dot"></span>
+    </button>
+    <button class="bnav-item" id="bn-talklist" onclick="switchPage('talklist')">
+      <span class="bnav-icon">💬</span><span>การคุย</span><span class="bnav-dot"></span>
+    </button>
+    <button class="bnav-item" id="bn-announcelist" onclick="switchPage('announcelist')">
+      <span class="bnav-icon">📣</span><span>แจ้งทีม</span><span class="bnav-dot"></span>
+    </button>
+    <button class="bnav-item" id="bn-emplist" onclick="switchPage('emplist')">
+      <span class="bnav-icon">👥</span><span>พนักงาน</span><span class="bnav-dot"></span>
+    </button>
+    <button class="bnav-item" id="bn-report" onclick="switchPage('report')">
+      <span class="bnav-icon">◈</span><span>รีพอต</span><span class="bnav-dot"></span>
+    </button>
+    <button class="bnav-item" id="bn-settings" onclick="switchPage('settings')">
+      <span class="bnav-icon">⚙️</span><span>ตั้งค่า</span><span class="bnav-dot"></span>
+    </button>
+  </div>
+</nav>
+<div class="modal-overlay hidden" id="done-modal">
+  <div class="modal">
+    <div class="modal-title">บันทึกสรุปการคุย</div>
+    <div class="modal-sub" id="modal-sub">คุยกับ — เรื่อง —</div>
+    <div class="modal-field"><label>สรุปการคุย</label><textarea id="modal-summary" placeholder="ผลเป็นยังไง รับทราบหรือเปล่า..."></textarea></div>
+    <div class="modal-field"><label>สิ่งที่ตกลง / Follow up <span style="color:var(--text3);font-weight:400">(ไม่บังคับ)</span></label><textarea id="modal-followup" placeholder="จะติดตามเรื่องอะไร ภายในเมื่อไร..." style="min-height:56px"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-sm" onclick="closeModal()">ยกเลิก</button>
+      <button class="btn btn-sm btn-success" onclick="confirmDone()">✓ บันทึกและปิด</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var DB_KEY='akane_leave_v1', TALK_KEY='akane_talk_v1', PLAN_KEY='akane_plan_v1', ANN_KEY='akane_announce_v1';
+var GS_URL_KEY='akane_gs_url';
+var records=[], talks=[], plans=[], announces=[];
+var _pendingPlanId=null;
+var _gsUrl='';
+var _readonly=false;
+
+/* ---- INIT ---- */
+function init(){
+  _gsUrl = (localStorage.getItem(GS_URL_KEY)||'').split('?')[0];
+  if(_gsUrl) document.getElementById('gs-url').value=_gsUrl;
+  updateReadonlyUrlBox();
+
+  // โหลดจาก localStorage ก่อน (fallback)
+  try{ var d=localStorage.getItem(DB_KEY); if(d) records=JSON.parse(d); }catch(e){ records=[]; }
+  try{ var t=localStorage.getItem(TALK_KEY); if(t) talks=JSON.parse(t); }catch(e){ talks=[]; }
+  try{ var p=localStorage.getItem(PLAN_KEY); if(p) plans=JSON.parse(p); }catch(e){ plans=[]; }
+  try{ var a=localStorage.getItem(ANN_KEY); if(a) announces=JSON.parse(a); }catch(e){ announces=[]; }
+  loadImgs(); // คืนรูปกลับเข้า announces
+  loadEmps();
+
+  var today=new Date();
+  document.getElementById('in-date').value=fmtISO(today);
+  document.getElementById('tk-date').value=fmtISO(today);
+  document.getElementById('an-date').value=fmtISO(today);
+  updateDatalist(); updateCounter(); renderRecent();
+
+  // ถ้ามี URL → sync อัตโนมัติ
+  if(_gsUrl) syncAll(true);
+}
+
+/* ---- GOOGLE SHEETS SYNC ---- */
+function saveGsUrl(){
+  var url=document.getElementById('gs-url').value.trim();
+  if(!url){ showMsg('gs-msg','กรุณากรอก URL ค่ะ',false); return; }
+  // ตัด query string ออกให้เหลือแค่ /exec
+  url=url.split('?')[0];
+  _gsUrl=url;
+  document.getElementById('gs-url').value=url;
+  localStorage.setItem(GS_URL_KEY,url);
+  updateReadonlyUrlBox();
+  showMsg('gs-msg','✓ บันทึก URL แล้วค่ะ กำลัง Sync...',true);
+  syncAll(true);
+}
+
+function updateReadonlyUrlBox(){
+  var box=document.getElementById('readonly-url-box');
+  if(!box) return;
+  if(_gsUrl){
+    var roUrl=_gsUrl+'?action=readonly';
+    box.textContent=roUrl;
+    box.style.color='var(--text)';
+  } else {
+    box.textContent='กรุณากรอก Apps Script URL ก่อนค่ะ';
+    box.style.color='var(--text2)';
+  }
+}
+
+function copyReadonlyUrl(){
+  if(!_gsUrl){ alert('กรุณากรอก URL ก่อนค่ะ'); return; }
+  var url=_gsUrl+'?action=readonly';
+  navigator.clipboard.writeText(url).then(function(){
+    alert('คัดลอก Link แล้วค่ะ — ส่งให้พี่หมิวได้เลย');
+  }).catch(function(){ alert(url); });
+}
+
+function setSyncStatus(txt,ok){
+  var el=document.getElementById('sync-status');
+  if(el){ el.textContent=txt; el.style.color=ok?'var(--green)':'var(--absent-t)'; }
+}
+
+/* ---- COERCE (แปลงค่าจาก Sheets) ---- */
+function coerceLeave(r){ return { id:+r.id||r.id, name:String(r.name||''), date:String(r.date||''), type:String(r.type||'sick'), days:+r.days||0, lateCount:+r.lateCount||0 }; }
+function coerceTalk(r){ return { id:+r.id||r.id, name:String(r.name||''), date:String(r.date||''), topic:String(r.topic||'leave'), channel:String(r.channel||'face'), summary:String(r.summary||''), followup:String(r.followup||'') }; }
+function coercePlan(r){ return { id:+r.id||r.id, name:String(r.name||''), date:String(r.date||''), topic:String(r.topic||'leave'), channel:String(r.channel||'face'), note:String(r.note||''), done:r.done==='true'||r.done===true, summary:String(r.summary||''), followup:String(r.followup||'') }; }
+function coerceAnnounce(r){ return { id:+r.id||r.id, team:String(r.team||'all'), channel:String(r.channel||'line'), date:String(r.date||''), topic:String(r.topic||''), status:String(r.status||'all'), note:String(r.note||'') }; }
+
+/* ---- JSONP ENGINE ---- */
+var _cbIdx=0;
+function jsonp(url, cb, timeoutMs){
+  var ms=timeoutMs||20000;
+  var name='_cb'+(++_cbIdx)+'_'+Date.now();
+  var script=document.createElement('script');
+  var done=false;
+  var timer=setTimeout(function(){
+    if(done) return; done=true;
+    cleanup(); cb(null,new Error('timeout'));
+  },ms);
+  function cleanup(){ delete window[name]; clearTimeout(timer); if(script.parentNode) script.parentNode.removeChild(script); }
+  window[name]=function(data){ if(done) return; done=true; cleanup(); cb(data,null); };
+  var sep=url.indexOf('?')>=0?'&':'?';
+  script.src=url+sep+'callback='+name+'&_='+Date.now();
+  script.onerror=function(){ if(done) return; done=true; cleanup(); cb(null,new Error('network error')); };
+  document.head.appendChild(script);
+}
+
+function gsGet(params, cb){
+  if(!_gsUrl){ cb(null,new Error('no url')); return; }
+  var qs=Object.keys(params).map(function(k){ return k+'='+encodeURIComponent(params[k]); }).join('&');
+  jsonp(_gsUrl+'?'+qs, cb, 25000);
+}
+
+/* ---- SYNC ---- */
+function syncAll(silent){
+  if(!_gsUrl){ if(!silent) alert('กรุณากรอก Apps Script URL ก่อนค่ะ'); return; }
+  setSyncStatus('กำลังดึงข้อมูล...','');
+  gsGet({action:'all'}, function(res,err){
+    if(err||!res||!res.ok){
+      setSyncStatus('⚠ Sync ไม่สำเร็จ',false);
+      if(!silent) alert('เชื่อมต่อไม่ได้ค่ะ: '+(err?err.message:(res&&res.error)||'unknown'));
+      return;
+    }
+    var d=res.data;
+    var totalFromSheets=(d.leave||[]).length+(d.talks||[]).length+(d.plans||[]).length+(d.announce||[]).length;
+    var totalLocal=records.length+talks.length+plans.length+announces.length;
+
+    // ถ้า Sheets ว่าง แต่ local มีข้อมูล — ไม่ทับ ถามก่อน
+    if(totalFromSheets===0 && totalLocal>0){
+      if(!silent){
+        if(!confirm('Google Sheets ไม่มีข้อมูลค่ะ\n\nอยากให้ดึงข้อมูลจาก Sheets (จะล้างข้อมูลในเครื่อง) หรือยกเลิก?\n\nกด OK = ดึงจาก Sheets\nกด Cancel = ยกเลิก')) return;
+      } else {
+        // auto sync แต่ Sheets ว่าง — ไม่ทำอะไร ใช้ local แทน
+        setSyncStatus('⚠ Sheets ว่าง ใช้ข้อมูลในเครื่อง',false);
+        return;
+      }
+    }
+
+    // เก็บรูปจาก announces เดิมไว้ก่อน (รูปไม่ sync ขึ้น Sheets)
+    var imgCache={};
+    announces.forEach(function(a){ if(a.imgs&&a.imgs.length) imgCache[a.id]=a.imgs; });
+
+    if(d.leave)    records=d.leave.map(coerceLeave);
+    if(d.talks)    talks=d.talks.map(coerceTalk);
+    if(d.plans)    plans=d.plans.map(coercePlan);
+    if(d.announce) announces=d.announce.map(function(a){
+      var r=coerceAnnounce(a);
+      // คืนรูปกลับถ้า id ตรงกัน
+      if(imgCache[r.id]) r.imgs=imgCache[r.id];
+      return r;
+    });
+
+    localStorage.setItem(DB_KEY,JSON.stringify(records));
+    localStorage.setItem(TALK_KEY,JSON.stringify(talks));
+    localStorage.setItem(PLAN_KEY,JSON.stringify(plans));
+    localStorage.setItem(ANN_KEY,JSON.stringify(announces));
+    updateDatalist(); updateCounter(); renderRecent();
+    var now=new Date();
+    setSyncStatus('✓ Sync '+pad(now.getHours())+':'+pad(now.getMinutes()),true);
+    if(!silent) alert('ดึงข้อมูลสำเร็จค่ะ ('+totalFromSheets+' รายการ)');
+  });
+}
+
+/* ---- PUSH ALL (clear → append ทีละ row ผ่าน JSONP) ---- */
+function pushAll(){
+  if(!_gsUrl){ alert('กรุณากรอก Apps Script URL ก่อนค่ะ'); return; }
+  var total=records.length+talks.length+plans.length+announces.length;
+  if(!confirm('อัปโหลดข้อมูลทั้งหมด '+total+' รายการขึ้น Google Sheets?\n\n(จะใช้เวลาสักครู่ค่ะ)')) return;
+
+  setSyncStatus('กำลังเตรียมอัปโหลด...','');
+
+  // step 1: clear ทุก sheet พร้อมกัน (parallel)
+  var sheets=['leave','talks','plans','announce'];
+  var cleared=0;
+  var clearErr=false;
+
+  sheets.forEach(function(k){
+    gsGet({action:'clearSheet',sheet:k}, function(res,err){
+      if(clearErr) return;
+      if(err||!res||!res.ok){
+        clearErr=true;
+        setSyncStatus('Clear ไม่สำเร็จ',false);
+        alert('เกิดข้อผิดพลาดตอน clear '+k+': '+(err?err.message:'unknown')+'\n\nลอง Deploy Apps Script ใหม่แล้วลองอีกครั้งค่ะ');
+        return;
+      }
+      cleared++;
+      if(cleared===sheets.length) startAppend();
+    });
+  });
+
+  // step 2: append ทีละ row หลัง clear ครบ
+  function startAppend(){
+    var queue=[];
+    records.forEach(function(r){   queue.push({sheet:'leave',   row:r}); });
+    talks.forEach(function(r){     queue.push({sheet:'talks',   row:r}); });
+    plans.forEach(function(r){     queue.push({sheet:'plans',   row:r}); });
+    announces.forEach(function(r){ queue.push({sheet:'announce',row:r}); });
+
+    if(!queue.length){
+      setSyncStatus('✓ อัปโหลดเสร็จ (ไม่มีข้อมูล)',true);
+      alert('อัปโหลดสำเร็จค่ะ — ยังไม่มีข้อมูลในระบบ');
+      return;
+    }
+
+    var i=0;
+    function next(){
+      if(i>=queue.length){
+        var now=new Date();
+        setSyncStatus('✓ อัปโหลด '+pad(now.getHours())+':'+pad(now.getMinutes()),true);
+        alert('อัปโหลดสำเร็จค่ะ ทั้งหมด '+queue.length+' รายการ');
+        return;
+      }
+      var q=queue[i++];
+      setSyncStatus('กำลังอัปโหลด '+i+'/'+queue.length+'...','');
+      gsGet({action:'appendRow', sheet:q.sheet, row:JSON.stringify(q.row)}, function(res,err){
+        if(err||!res||!res.ok){
+          setSyncStatus('อัปโหลดไม่สำเร็จที่แถว '+i,false);
+          if(confirm('เกิดข้อผิดพลาดที่แถว '+i+'/'+queue.length+'\n\nลองใหม่?')) next();
+          return;
+        }
+        // หน่วงเวลา 300ms ก่อน request ถัดไป ป้องกัน rate limit
+        setTimeout(next, 300);
+      });
+    }
+    next();
+  }
+}
+
+/* ---- API HELPERS ---- */
+function apiAdd(sheet, row, cb){
+  if(!_gsUrl){ if(cb) cb(); return; }
+  gsGet({action:'appendRow', sheet:sheet, row:JSON.stringify(row)}, function(){ if(cb) cb(); });
+}
+function apiUpdate(sheet, id, row){
+  if(!_gsUrl) return;
+  gsGet({action:'updateRow', sheet:sheet, id:id, row:JSON.stringify(row)}, function(){});
+}
+function apiDelete(sheet, id){
+  if(!_gsUrl) return;
+  gsGet({action:'deleteRow', sheet:sheet, id:id}, function(){});
+}
+
+/* ---- EXPORT / IMPORT ---- */
+function exportJSON(){
+  var data={ leave:records, talks:talks, plans:plans, announce:announces, exportedAt:new Date().toISOString() };
+  var blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='akane_hr_backup_'+fmtISO(new Date())+'.json';
+  a.click();
+}
+function importJSON(e){
+  var file=e.target.files[0]; if(!file) return;
+  var reader=new FileReader();
+  reader.onload=function(ev){
+    try{
+      var data=JSON.parse(ev.target.result);
+      if(data.leave)    records=data.leave;
+      if(data.talks)    talks=data.talks;
+      if(data.plans)    plans=data.plans;
+      if(data.announce) announces=data.announce;
+      saveLeave(); saveTalk(); savePlan(); saveAnnounce();
+      updateDatalist(); updateCounter(); renderRecent();
+      alert('Import สำเร็จค่ะ — '+records.length+' การลา, '+talks.length+' การคุย, '+announces.length+' การแจ้ง');
+    }catch(err){ alert('ไฟล์ไม่ถูกต้องค่ะ: '+err.message); }
+  };
+  reader.readAsText(file);
+}
+
+function saveLeave(){ try{ localStorage.setItem(DB_KEY,JSON.stringify(records)); }catch(e){} }
+function saveTalk(){  try{ localStorage.setItem(TALK_KEY,JSON.stringify(talks));  }catch(e){} }
+function savePlan(){  try{ localStorage.setItem(PLAN_KEY,JSON.stringify(plans));  }catch(e){} }
+var IMG_KEY='akane_imgs_v1'; // เก็บรูปแยก key
+
+function saveImgs(){
+  // เก็บ map ของ id → imgs แยกต่างหาก
+  var imgMap={};
+  announces.forEach(function(a){ if(a.imgs&&a.imgs.length) imgMap[a.id]=a.imgs; });
+  try{ localStorage.setItem(IMG_KEY,JSON.stringify(imgMap)); }catch(e){}
+}
+
+function loadImgs(){
+  try{
+    var raw=localStorage.getItem(IMG_KEY);
+    if(!raw) return;
+    var imgMap=JSON.parse(raw);
+    announces.forEach(function(a){
+      if(imgMap[a.id]) a.imgs=imgMap[a.id];
+    });
+  }catch(e){}
+}
+
+function saveAnnounce(){
+  // บันทึก announces โดยไม่เอารูปเข้าไป (ประหยัด space)
+  var noImg=announces.map(function(a){
+    var copy=Object.assign({},a);
+    delete copy.imgs;
+    return copy;
+  });
+  try{ localStorage.setItem(ANN_KEY,JSON.stringify(noImg)); }catch(e){}
+  saveImgs();
+}
+
+/* ---- HELPERS ---- */
+function fmtISO(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+function pad(n){ return n<10?'0'+n:String(n); }
+function fmtThai(s){
+  if(!s) return '';
+  var p=s.split('-');
+  var m=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  return parseInt(p[2])+' '+m[parseInt(p[1])-1]+' '+(parseInt(p[0])+543);
+}
+function todayISO(){ return fmtISO(new Date()); }
+function typeThai(t){ return {sick:'ลาป่วย',biz:'ลากิจ',vac:'ลาพักร้อน',absent:'ขาดงาน',late:'มาสาย',resign:'ลาออก'}[t]||t; }
+function topicThai(t){ return {leave:'การลา/ขาด/สาย',perf:'ผลงาน/KPI',att:'ทัศนคติ/พฤติกรรม',other:'อื่น ๆ'}[t]||t; }
+function teamThai(t){ return {telesales:'Telesales',live:'Live Streaming',content:'Content',admin:'Admin',hr:'HR / Office',all:'ทุกทีม'}[t]||t; }
+function teamBadge(t){ return '<span class="badge badge-team-'+t+'">'+teamThai(t)+'</span>'; }
+function channelThai(c){ return c==='line'?'LINE':'พบหน้า'; }
+function badge(t){ return '<span class="badge badge-'+t+'">'+typeThai(t)+'</span>'; }
+function topicBadge(t){ return '<span class="badge badge-'+t+'">'+topicThai(t)+'</span>'; }
+function channelBadge(c){ return '<span class="badge badge-'+c+'">'+channelThai(c)+'</span>'; }
+function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>'); }
+
+function getNames(){
+  var s={}; records.forEach(function(r){ s[r.name]=1; }); talks.forEach(function(t){ s[t.name]=1; }); plans.forEach(function(p){ s[p.name]=1; }); return Object.keys(s).sort();
+}
+function updateDatalist(){
+  var html=getNames().map(function(x){ return '<option value="'+x+'">'; }).join('');
+  ['emp-list','emp-list2','emp-list3','emp-list4'].forEach(function(id){ var el=document.getElementById(id); if(el) el.innerHTML=html; });
+}
+function updateCounter(){
+  var todayPlans=plans.filter(function(p){ return p.date===todayISO(); });
+  var done=todayPlans.filter(function(p){ return p.done; }).length;
+  document.getElementById('db-count').textContent=
+    'แพลนวันนี้: '+done+'/'+todayPlans.length+'\n'+records.length+' การลา  ·  '+talks.length+' การคุย\n'+'แจ้งทีม: '+announces.length+' รายการ';
+}
+function showMsg(id,txt,ok){
+  var el=document.getElementById(id); el.textContent=txt; el.style.color=ok?'#2D6A4F':'#991B1B';
+  setTimeout(function(){ el.textContent=''; },4000);
+}
+
+/* ---- NAV ---- */
+var _bnavMap={
+  add:'bn-add',list:'bn-list',report:'bn-report',summary:'bn-summary',
+  plan:'bn-plan',talk:'bn-talklist',talklist:'bn-talklist',
+  announce:'bn-announcelist',announcelist:'bn-announcelist',
+  settings:'bn-settings',emplist:'bn-emplist',empadd:'bn-emplist',
+  empprofile:'bn-emplist'
+};
+function switchPage(p){
+  document.querySelectorAll('.page').forEach(function(el){ el.classList.remove('active'); });
+  document.querySelectorAll('.nav-item').forEach(function(el){ el.classList.remove('active'); });
+  document.querySelectorAll('.bnav-item').forEach(function(el){ el.classList.remove('active'); });
+  document.getElementById('page-'+p).classList.add('active');
+  var idx={'add':0,'list':1,'report':2,'summary':3,'plan':4,'talk':5,'talklist':6,'announce':7,'announcelist':8,'settings':9,'emplist':10,'empadd':11}[p];
+  if(idx!==undefined) document.querySelectorAll('.nav-item')[idx].classList.add('active');
+  var bnId=_bnavMap[p];
+  if(bnId){ var bn=document.getElementById(bnId); if(bn) bn.classList.add('active'); }
+  if(p==='list') renderList();
+  if(p==='summary') renderSummary();
+  if(p==='talklist') renderTalkList();
+  if(p==='plan') renderPlan();
+  if(p==='announcelist') renderAnnounceList();
+  if(p==='emplist') renderEmpList();
+  if(p==='empadd'&&!_editEmpId) resetEmpForm();
+  // scroll to top on mobile
+  window.scrollTo(0,0);
+}
+
+function toggleDaysCnt(){
+  var v=document.getElementById('in-type').value;
+  var noDay=v==='late'||v==='resign';
+  document.getElementById('f-days').style.display=noDay?'none':'block';
+  document.getElementById('f-late').style.display=v==='late'?'block':'none';
+}
+function toggleCustomRange(){ document.getElementById('custom-row').style.display=document.getElementById('r-range').value==='custom'?'flex':'none'; }
+function toggleSummaryCustom(){
+  var v=document.getElementById('s-range').value;
+  document.getElementById('s-from-f').style.display=v==='custom'?'block':'none';
+  document.getElementById('s-to-f').style.display=v==='custom'?'block':'none';
+}
+
+/* ---- ADD LEAVE ---- */
+function addRecord(){
+  var name=document.getElementById('in-name').value.trim();
+  var date=document.getElementById('in-date').value;
+  var type=document.getElementById('in-type').value;
+  var isLate=type==='late';
+  var isResign=type==='resign';
+  var days=(isLate||isResign)?0:parseFloat(document.getElementById('in-days').value)||1;
+  var lateCount=isLate?parseInt(document.getElementById('in-late').value)||1:0;
+  if(!name||!date){ showMsg('add-msg','กรุณากรอกชื่อและวันที่ค่ะ',false); return; }
+  records.push({ id:Date.now(), name:name, date:date, type:type, days:days, lateCount:lateCount });
+  saveLeave(); updateDatalist(); updateCounter();
+  var newRec=records[records.length-1];
+  apiAdd('leave', newRec);
+  var qty=isLate?lateCount+' ครั้ง':isResign?'':days+' วัน';
+  showMsg('add-msg','✓ บันทึกแล้ว — '+name+' '+typeThai(type)+(qty?' '+qty:'')+' ('+fmtThai(date)+')',true);
+  document.getElementById('in-name').value='';
+  document.getElementById('in-days').value='1';
+  document.getElementById('in-late').value='1';
+  renderRecent();
+}
+
+/* ---- RECENT ---- */
+function renderRecent(){
+  var last=records.slice().sort(function(a,b){ return b.id-a.id; }).slice(0,5);
+  if(!last.length){ document.getElementById('recent-card').style.display='none'; return; }
+  document.getElementById('recent-card').style.display='block';
+  var html='';
+  last.forEach(function(r){
+    html+='<tr><td>'+fmtThai(r.date)+'</td><td>'+r.name+'</td><td>'+badge(r.type)+'</td><td>'+(r.type==='late'?r.lateCount+' ครั้ง':r.type==='resign'?'—':r.days+' วัน')+'</td><td><button class="btn btn-sm btn-danger" onclick="delRec('+r.id+',\'recent\')">ลบ</button></td></tr>';
+  });
+  document.getElementById('recent-body').innerHTML=html;
+}
+
+/* ---- LIST ---- */
+function clearFilters(){ ['f-name','f-type','f-from','f-to'].forEach(function(id){ document.getElementById(id).value=''; }); renderList(); }
+function renderList(){
+  var fn=document.getElementById('f-name').value.trim().toLowerCase();
+  var ft=document.getElementById('f-type').value;
+  var ff=document.getElementById('f-from').value;
+  var fto=document.getElementById('f-to').value;
+  var filtered=records.filter(function(r){
+    if(fn&&r.name.toLowerCase().indexOf(fn)<0) return false;
+    if(ft&&r.type!==ft) return false;
+    if(ff&&r.date<ff) return false;
+    if(fto&&r.date>fto) return false;
+    return true;
+  }).sort(function(a,b){ return b.date.localeCompare(a.date)||b.id-a.id; });
+  var kpiEl=document.getElementById('list-kpi');
+  if(filtered.length){
+    kpiEl.style.display='grid';
+    var totalDays=0,lateCnt=0,resignCnt=0;
+    filtered.forEach(function(r){ if(r.type==='late') lateCnt+=r.lateCount; else if(r.type==='resign') resignCnt++; else totalDays+=r.days; });
+    kpiEl.innerHTML='<div class="kpi"><div class="kpi-num">'+filtered.length+'</div><div class="kpi-label">รายการ</div></div>'+
+      '<div class="kpi"><div class="kpi-num">'+totalDays+'</div><div class="kpi-label">วันลารวม</div></div>'+
+      '<div class="kpi"><div class="kpi-num">'+lateCnt+'</div><div class="kpi-label">ครั้งมาสาย</div></div>'+
+      '<div class="kpi"><div class="kpi-num">'+resignCnt+'</div><div class="kpi-label">ลาออก</div></div>';
+  } else { kpiEl.style.display='none'; }
+  var wrap=document.getElementById('list-wrap');
+  if(!filtered.length){ wrap.innerHTML='<div class="empty">ไม่มีข้อมูลค่ะ</div>'; return; }
+  var html='<table><thead><tr><th>วันที่</th><th>ชื่อ</th><th>ประเภท</th><th>จำนวน</th><th></th></tr></thead><tbody>';
+  filtered.forEach(function(r){
+    html+='<tr><td>'+fmtThai(r.date)+'</td><td>'+r.name+'</td><td>'+badge(r.type)+'</td><td>'+(r.type==='late'?r.lateCount+' ครั้ง':r.type==='resign'?'—':r.days+' วัน')+'</td><td><button class="btn btn-sm btn-danger" onclick="delRec('+r.id+',\'list\')">ลบ</button></td></tr>';
+  });
+  wrap.innerHTML=html+'</tbody></table>';
+}
+function delRec(id,from){
+  if(!confirm('ลบรายการนี้?')) return;
+  apiDelete('leave', id);
+  records=records.filter(function(r){ return r.id!==id; });
+  saveLeave(); updateCounter(); updateDatalist();
+  if(from==='recent') renderRecent();
+  if(from==='list') renderList();
+}
+
+/* ---- PLAN ---- */
+function addPlan(){
+  var name=document.getElementById('pl-name').value.trim();
+  var topic=document.getElementById('pl-topic').value;
+  var channel=document.getElementById('pl-channel').value;
+  var note=document.getElementById('pl-note').value.trim();
+  if(!name){ showMsg('plan-msg','กรุณากรอกชื่อพนักงานค่ะ',false); return; }
+  var today=todayISO();
+  // check duplicate
+  var dup=plans.find(function(p){ return p.name===name&&p.date===today&&!p.done; });
+  if(dup){ showMsg('plan-msg','มี '+name+' ในแพลนวันนี้แล้วค่ะ',false); return; }
+  plans.push({ id:Date.now(), name:name, date:today, topic:topic, channel:channel, note:note, done:false });
+  savePlan(); updateDatalist(); updateCounter();
+  apiAdd('plans', plans[plans.length-1]);
+  showMsg('plan-msg','✓ เพิ่ม '+name+' ในแพลนวันนี้แล้วค่ะ',true);
+  document.getElementById('pl-name').value='';
+  document.getElementById('pl-note').value='';
+  renderPlan();
+}
+
+function renderPlan(){
+  var today=todayISO();
+  var todayPlans=plans.filter(function(p){ return p.date===today; });
+  var pending=todayPlans.filter(function(p){ return !p.done; });
+  var done=todayPlans.filter(function(p){ return p.done; });
+
+  var html='';
+
+  // stats header
+  html+='<div class="plan-date-header">';
+  html+='<div class="plan-date-label">📅 '+fmtThai(today)+'</div>';
+  html+='<div class="plan-stats"><span>รอ <b>'+pending.length+'</b> คน</span><span>คุยแล้ว <b>'+done.length+'</b> คน</span></div>';
+  html+='</div>';
+
+  if(!pending.length&&!done.length){
+    html+='<div class="empty">ยังไม่มีแพลนวันนี้ค่ะ — เพิ่มได้เลย</div>';
+    document.getElementById('plan-body').innerHTML=html; return;
+  }
+
+  // pending
+  if(pending.length){
+    html+='<div class="plan-section-label">รอคุย</div><div class="plan-list">';
+    pending.forEach(function(p){
+      html+='<div class="plan-item" id="pi-'+p.id+'">';
+      html+='<div class="plan-check" onclick="tickPlan('+p.id+')" title="ติ๊กเมื่อคุยเสร็จ">○</div>';
+      html+='<div class="plan-item-info">';
+      html+='<div class="plan-item-name">'+p.name+'</div>';
+      html+='<div class="plan-item-meta">'+topicBadge(p.topic)+channelBadge(p.channel);
+      if(p.note) html+='<span style="font-size:12px;color:var(--text2)">'+esc(p.note)+'</span>';
+      html+='</div></div>';
+      html+='<div class="plan-item-actions"><button class="btn btn-sm btn-danger" onclick="delPlan('+p.id+')">ลบ</button></div>';
+      html+='</div>';
+    });
+    html+='</div>';
+  }
+
+  // done
+  if(done.length){
+    html+='<div class="plan-section-label">คุยเสร็จแล้ว</div><div class="plan-list">';
+    done.forEach(function(p){
+      html+='<div class="plan-item done" id="pi-'+p.id+'">';
+      html+='<div class="plan-check">✓</div>';
+      html+='<div class="plan-item-info">';
+      html+='<div class="plan-item-name">'+p.name+'</div>';
+      html+='<div class="plan-item-meta">'+topicBadge(p.topic)+channelBadge(p.channel)+'</div>';
+      if(p.summary) html+='<div style="font-size:12.5px;color:var(--text2);margin-top:4px">'+esc(p.summary)+'</div>';
+      html+='</div>';
+      html+='<div class="plan-item-actions"><button class="btn btn-sm btn-danger" onclick="delPlan('+p.id+')">ลบ</button></div>';
+      html+='</div>';
+    });
+    html+='</div>';
+  }
+
+  document.getElementById('plan-body').innerHTML=html;
+}
+
+function tickPlan(id){
+  var p=plans.find(function(x){ return x.id===id; });
+  if(!p||p.done) return;
+  _pendingPlanId=id;
+  document.getElementById('modal-sub').textContent='คุยกับ "'+p.name+'" เรื่อง '+topicThai(p.topic)+' ('+channelThai(p.channel)+')';
+  document.getElementById('modal-summary').value='';
+  document.getElementById('modal-followup').value='';
+  document.getElementById('done-modal').classList.remove('hidden');
+  setTimeout(function(){ document.getElementById('modal-summary').focus(); },100);
+}
+
+function closeModal(){
+  document.getElementById('done-modal').classList.add('hidden');
+  _pendingPlanId=null;
+}
+
+function confirmDone(){
+  if(!_pendingPlanId) return;
+  var summary=document.getElementById('modal-summary').value.trim();
+  if(!summary){ document.getElementById('modal-summary').style.borderColor='#E24B4A'; setTimeout(function(){ document.getElementById('modal-summary').style.borderColor=''; },2000); return; }
+  var followup=document.getElementById('modal-followup').value.trim();
+  var p=plans.find(function(x){ return x.id===_pendingPlanId; });
+  if(!p) return;
+  // mark done
+  p.done=true; p.summary=summary; p.followup=followup;
+  savePlan();
+  apiUpdate('plans', p.id, p);
+  // auto-save to talks
+  var newTalk={ id:Date.now(), name:p.name, date:todayISO(), topic:p.topic, channel:p.channel, summary:summary, followup:followup };
+  talks.push(newTalk);
+  saveTalk();
+  apiAdd('talks', newTalk);
+  closeModal();
+  updateDatalist(); updateCounter(); renderPlan();
+}
+
+function delPlan(id){
+  if(!confirm('ลบรายการแพลนนี้?')) return;
+  apiDelete('plans', id);
+  plans=plans.filter(function(p){ return p.id!==id; });
+  savePlan(); updateCounter(); renderPlan();
+}
+
+/* ---- ADD TALK (manual) ---- */
+function addTalk(){
+  var name=document.getElementById('tk-name').value.trim();
+  var date=document.getElementById('tk-date').value;
+  var topic=document.getElementById('tk-topic').value;
+  var channel=document.getElementById('tk-channel').value;
+  var summary=document.getElementById('tk-summary').value.trim();
+  var followup=document.getElementById('tk-followup').value.trim();
+  if(!name||!date||!summary){ showMsg('talk-msg','กรุณากรอกชื่อ วันที่ และสรุปการคุยค่ะ',false); return; }
+  talks.push({ id:Date.now(), name:name, date:date, topic:topic, channel:channel, summary:summary, followup:followup });
+  saveTalk(); updateDatalist(); updateCounter();
+  apiAdd('talks', talks[talks.length-1]);
+  showMsg('talk-msg','✓ บันทึกแล้ว — '+name+' ('+topicThai(topic)+' / '+channelThai(channel)+') '+fmtThai(date),true);
+  document.getElementById('tk-name').value='';
+  document.getElementById('tk-summary').value='';
+  document.getElementById('tk-followup').value='';
+}
+
+/* ---- TALK LIST ---- */
+function clearTalkFilters(){ ['tl-name','tl-topic','tl-channel','tl-from','tl-to'].forEach(function(id){ document.getElementById(id).value=''; }); renderTalkList(); }
+function renderTalkList(){
+  var fn=document.getElementById('tl-name').value.trim().toLowerCase();
+  var ft=document.getElementById('tl-topic').value;
+  var fc=document.getElementById('tl-channel').value;
+  var ff=document.getElementById('tl-from').value;
+  var fto=document.getElementById('tl-to').value;
+  var filtered=talks.filter(function(t){
+    if(fn&&t.name.toLowerCase().indexOf(fn)<0) return false;
+    if(ft&&t.topic!==ft) return false;
+    if(fc&&t.channel!==fc) return false;
+    if(ff&&t.date<ff) return false;
+    if(fto&&t.date>fto) return false;
+    return true;
+  }).sort(function(a,b){ return b.date.localeCompare(a.date)||b.id-a.id; });
+
+  var kpiEl=document.getElementById('talklist-kpi');
+  if(filtered.length){
+    kpiEl.style.display='grid';
+    var bt={leave:0,perf:0,att:0,other:0},face=0,line=0;
+    filtered.forEach(function(t){ bt[t.topic]=(bt[t.topic]||0)+1; if(t.channel==='line') line++; else face++; });
+    kpiEl.innerHTML='<div class="kpi"><div class="kpi-num">'+filtered.length+'</div><div class="kpi-label">ทั้งหมด</div></div>'+
+      '<div class="kpi"><div class="kpi-num">'+face+'</div><div class="kpi-label">พบหน้า</div></div>'+
+      '<div class="kpi"><div class="kpi-num">'+line+'</div><div class="kpi-label">ผ่าน LINE</div></div>'+
+      '<div class="kpi"><div class="kpi-num">'+bt.att+'</div><div class="kpi-label">ทัศนคติ</div></div>';
+  } else { kpiEl.style.display='none'; }
+
+  var body=document.getElementById('talklist-body');
+  if(!filtered.length){ body.innerHTML='<div class="empty">ไม่มีข้อมูลค่ะ</div>'; return; }
+  var html='';
+  filtered.forEach(function(t){
+    html+='<div class="talk-card"><div class="talk-card-top"><div class="talk-meta"><span class="talk-name">'+t.name+'</span>'+topicBadge(t.topic)+channelBadge(t.channel||'face')+'<span class="talk-date-lbl">'+fmtThai(t.date)+'</span></div><button class="btn btn-sm btn-danger" onclick="delTalk('+t.id+')">ลบ</button></div>';
+    html+='<div class="talk-body">'+esc(t.summary)+'</div>';
+    if(t.followup) html+='<div class="talk-followup"><div class="talk-followup-label">Follow up</div>'+esc(t.followup)+'</div>';
+    html+='</div>';
+  });
+  body.innerHTML=html;
+}
+function delTalk(id){
+  if(!confirm('ลบบันทึกนี้?')) return;
+  apiDelete('talks', id);
+  talks=talks.filter(function(t){ return t.id!==id; });
+  saveTalk(); updateCounter(); renderTalkList();
+}
+
+/* ---- DATE RANGE ---- */
+function getRange(prefix){
+  var v=document.getElementById(prefix+'-range').value;
+  var today=new Date();
+  if(v==='week'){ var f=new Date(today); f.setDate(today.getDate()-6); return {from:fmtISO(f),to:fmtISO(today)}; }
+  if(v==='month'){ return {from:fmtISO(new Date(today.getFullYear(),today.getMonth(),1)),to:fmtISO(today)}; }
+  var rf=document.getElementById(prefix+'-from').value, rt=document.getElementById(prefix+'-to').value;
+  if(!rf||!rt){ alert('กรุณาเลือกช่วงวันที่'); return null; }
+  return {from:rf,to:rt};
+}
+
+/* ---- REPORT ---- */
+function genReport(){
+  var rng=getRange('r'); if(!rng) return;
+  var rname=document.getElementById('r-name').value.trim().toLowerCase();
+  var fl=records.filter(function(r){ if(rname&&r.name.toLowerCase()!==rname) return false; return r.date>=rng.from&&r.date<=rng.to; });
+  var ft=talks.filter(function(t){ if(rname&&t.name.toLowerCase()!==rname) return false; return t.date>=rng.from&&t.date<=rng.to; });
+  var out=document.getElementById('report-out');
+  if(!fl.length&&!ft.length){ out.innerHTML='<div class="empty">ไม่มีข้อมูลในช่วงนี้ค่ะ</div>'; return; }
+
+  var byName={};
+  fl.forEach(function(r){
+    if(!byName[r.name]) byName[r.name]={sick:0,biz:0,vac:0,absent:0,late:0,resign:0,talks:[]};
+    if(r.type==='late') byName[r.name].late+=r.lateCount;
+    else if(r.type==='resign') byName[r.name].resign=1;
+    else byName[r.name][r.type]+=r.days;
+  });
+  ft.forEach(function(t){
+    if(!byName[t.name]) byName[t.name]={sick:0,biz:0,vac:0,absent:0,late:0,resign:0,talks:[]};
+    byName[t.name].talks.push(t);
+  });
+
+  var rangeLabel=fmtThai(rng.from)+' – '+fmtThai(rng.to);
+  var html='<div class="report-box">';
+  html+='<div style="font-weight:600;font-size:15px;margin-bottom:4px">'+(rname?'รีพอต: '+document.getElementById('r-name').value.trim():'รีพอต: พนักงานทุกคน')+'</div>';
+  html+='<div style="color:var(--text2);font-size:12px;margin-bottom:24px;font-family:var(--mono)">ช่วง: '+rangeLabel+'</div>';
+
+  Object.keys(byName).sort().forEach(function(nm){
+    var d=byName[nm]; var total=d.sick+d.biz+d.vac+d.absent;
+    html+='<div class="report-section"><div class="report-emp-name">'+nm+'</div>';
+    if(d.sick)   html+='<div class="report-row"><span>ลาป่วย</span><span>'+d.sick+' วัน</span></div>';
+    if(d.biz)    html+='<div class="report-row"><span>ลากิจ</span><span>'+d.biz+' วัน</span></div>';
+    if(d.vac)    html+='<div class="report-row"><span>ลาพักร้อน</span><span>'+d.vac+' วัน</span></div>';
+    if(d.absent) html+='<div class="report-row"><span>ขาดงาน</span><span>'+d.absent+' วัน</span></div>';
+    if(d.late)   html+='<div class="report-row"><span>มาสาย</span><span>'+d.late+' ครั้ง</span></div>';
+    if(d.resign) html+='<div class="report-row"><span>ลาออก</span><span style="color:var(--resign-t);font-weight:600">✓</span></div>';
+    if(!d.sick&&!d.biz&&!d.vac&&!d.absent&&!d.late&&!d.resign) html+='<div style="color:var(--text3);font-size:13px">ไม่มีข้อมูลการลา</div>';
+    if(total) html+='<div class="report-total"><span>รวมลา</span><span>'+total+' วัน</span></div>';
+    if(d.talks.length){
+      html+='<div style="margin-top:14px"><div class="report-h">บันทึกการเรียกคุย ('+d.talks.length+' ครั้ง)</div>';
+      d.talks.forEach(function(t){
+        html+='<div style="background:var(--surface2);border-radius:8px;padding:10px 12px;margin-bottom:8px;font-size:13px">';
+        html+='<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">'+topicBadge(t.topic)+channelBadge(t.channel||'face')+'<span style="color:var(--text3);font-family:var(--mono);font-size:12px">'+fmtThai(t.date)+'</span></div>';
+        html+='<div>'+esc(t.summary)+'</div>';
+        if(t.followup) html+='<div style="margin-top:6px;padding-top:6px;border-top:1px dashed var(--border);color:var(--text2);font-size:12.5px"><span style="color:var(--text3)">Follow up: </span>'+esc(t.followup)+'</div>';
+        html+='</div>';
+      });
+      html+='</div>';
+    }
+    html+='</div>';
+  });
+
+  var grand={sick:0,biz:0,vac:0,absent:0,late:0,resign:0};
+  Object.values(byName).forEach(function(d){ ['sick','biz','vac','absent','late','resign'].forEach(function(k){ grand[k]+=d[k]; }); });
+  html+='<div style="border-top:1px solid var(--border2);padding-top:14px;margin-top:4px"><div class="report-h">รวมทั้งหมด</div>';
+  if(grand.sick)   html+='<div class="report-row"><span>ลาป่วย</span><span>'+grand.sick+' วัน</span></div>';
+  if(grand.biz)    html+='<div class="report-row"><span>ลากิจ</span><span>'+grand.biz+' วัน</span></div>';
+  if(grand.vac)    html+='<div class="report-row"><span>ลาพักร้อน</span><span>'+grand.vac+' วัน</span></div>';
+  if(grand.absent) html+='<div class="report-row"><span>ขาดงาน</span><span>'+grand.absent+' วัน</span></div>';
+  if(grand.late)   html+='<div class="report-row"><span>มาสาย</span><span>'+grand.late+' ครั้ง</span></div>';
+  if(grand.resign) html+='<div class="report-row"><span>ลาออก</span><span>'+grand.resign+' คน</span></div>';
+  html+='<div class="report-total"><span>วันลารวม</span><span>'+(grand.sick+grand.biz+grand.vac+grand.absent)+' วัน</span></div></div></div>';
+  out.innerHTML=html;
+}
+
+/* ---- SUMMARY ---- */
+function renderSummary(){
+  var rng=getRange('s'); if(!rng) return;
+  var names=getNames();
+  var wrap=document.getElementById('summary-wrap');
+  if(!names.length){ wrap.innerHTML='<div class="empty">ยังไม่มีข้อมูลค่ะ</div>'; return; }
+  var byName={};
+  names.forEach(function(n){ byName[n]={sick:0,biz:0,vac:0,absent:0,late:0,resign:0,face:0,line:0}; });
+  records.forEach(function(r){
+    if(r.date<rng.from||r.date>rng.to) return;
+    if(!byName[r.name]) byName[r.name]={sick:0,biz:0,vac:0,absent:0,late:0,resign:0,face:0,line:0};
+    if(r.type==='late') byName[r.name].late+=r.lateCount;
+    else if(r.type==='resign') byName[r.name].resign=1;
+    else byName[r.name][r.type]+=r.days;
+  });
+  talks.forEach(function(t){
+    if(t.date<rng.from||t.date>rng.to) return;
+    if(!byName[t.name]) byName[t.name]={sick:0,biz:0,vac:0,absent:0,late:0,face:0,line:0};
+    if(t.channel==='line') byName[t.name].line++; else byName[t.name].face++;
+  });
+  var rangeLabel=fmtThai(rng.from)+' – '+fmtThai(rng.to);
+  var html='<div style="font-size:12px;color:var(--text2);margin-bottom:10px;padding:0 2px">ช่วง: '+rangeLabel+'</div>';
+  html+='<table class="stat-table"><thead><tr><th>ชื่อ</th><th>ลาป่วย</th><th>ลากิจ</th><th>พักร้อน</th><th>ขาดงาน</th><th>มาสาย</th><th>ลาออก</th><th>รวมลา</th><th>พบหน้า</th><th>LINE</th></tr></thead><tbody>';
+  names.slice().sort().forEach(function(nm){
+    var d=byName[nm]||{sick:0,biz:0,vac:0,absent:0,late:0,resign:0,face:0,line:0};
+    var total=d.sick+d.biz+d.vac+d.absent;
+    html+='<tr><td style="font-weight:500">'+nm+'</td>'+
+      '<td>'+(d.sick?d.sick+' วัน':'—')+'</td>'+
+      '<td>'+(d.biz?d.biz+' วัน':'—')+'</td>'+
+      '<td>'+(d.vac?d.vac+' วัน':'—')+'</td>'+
+      '<td>'+(d.absent?'<span style="color:var(--absent-t);font-weight:500">'+d.absent+' วัน</span>':'—')+'</td>'+
+      '<td>'+(d.late?'<span style="color:var(--late-t);font-weight:500">'+d.late+' ครั้ง</span>':'—')+'</td>'+
+      '<td>'+(d.resign?'<span class="badge badge-resign">ลาออก</span>':'—')+'</td>'+
+      '<td style="font-weight:500">'+(total||'—')+'</td>'+
+      '<td>'+(d.face?'<span style="color:var(--biz-t);font-weight:500">'+d.face+' ครั้ง</span>':'—')+'</td>'+
+      '<td>'+(d.line?'<span style="color:var(--vac-t);font-weight:500">'+d.line+' ครั้ง</span>':'—')+'</td>'+
+      '</tr>';
+  });
+  html+='</tbody></table>';
+  wrap.innerHTML=html;
+}
+
+/* close modal on overlay click */
+document.getElementById('done-modal').addEventListener('click',function(e){ if(e.target===this) closeModal(); });
+
+/* ---- IMAGE LIGHTBOX ---- */
+function openImg(announceId, imgIdx){
+  var a=announces.find(function(x){ return x.id==announceId; });
+  if(!a||!a.imgs||!a.imgs[imgIdx]) return;
+  var overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;z-index:9999;cursor:zoom-out;padding:20px;';
+  var img=document.createElement('img');
+  img.src=a.imgs[imgIdx];
+  img.style.cssText='max-width:90vw;max-height:90vh;border-radius:10px;object-fit:contain;box-shadow:0 8px 40px rgba(0,0,0,.4);';
+  overlay.appendChild(img);
+  overlay.onclick=function(){ document.body.removeChild(overlay); };
+  document.body.appendChild(overlay);
+}
+
+/* ---- ANNOUNCE ---- */
+var _announceImgs=[]; // เก็บ base64 รูปชั่วคราวก่อนบันทึก
+
+function previewAnnounceImgs(e){
+  var files=Array.from(e.target.files);
+  _announceImgs=[];
+  var preview=document.getElementById('an-img-preview');
+  preview.innerHTML='';
+  var pending=files.length;
+  if(!pending) return;
+  files.forEach(function(f,fi){
+    var reader=new FileReader();
+    reader.onload=function(ev){
+      _announceImgs[fi]=ev.target.result;
+      var img=document.createElement('img');
+      img.src=ev.target.result;
+      img.style.cssText='width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--border);cursor:pointer;';
+      img.title='คลิกเพื่อลบ';
+      img.onclick=function(){
+        _announceImgs[fi]=null;
+        img.remove();
+      };
+      preview.appendChild(img);
+    };
+    reader.readAsDataURL(f);
+  });
+}
+
+function addAnnounce(){
+  var team=document.getElementById('an-team').value;
+  var channel=document.getElementById('an-channel').value;
+  var date=document.getElementById('an-date').value;
+  var topic=document.getElementById('an-topic').value.trim();
+  var status=document.getElementById('an-status').value;
+  var note=document.getElementById('an-note').value.trim();
+  if(!date||!topic){ showMsg('an-msg','กรุณากรอกเรื่องที่แจ้งและวันที่ค่ะ',false); return; }
+  var imgs=_announceImgs.filter(Boolean);
+  announces.push({ id:Date.now(), team:team, channel:channel, date:date, topic:topic, status:status, note:note, imgs:imgs });
+  saveAnnounce(); updateCounter();
+  apiAdd('announce', announces[announces.length-1]);
+  var statusLabel=status==='all'?'รับทราบทุกคน ✓':'บางคนยังไม่รับทราบ';
+  showMsg('an-msg','✓ บันทึกแล้ว — แจ้ง'+teamThai(team)+' ผ่าน'+channelThai(channel)+' ('+statusLabel+')'+(imgs.length?' 📎 '+imgs.length+' รูป':''),true);
+  document.getElementById('an-topic').value='';
+  document.getElementById('an-note').value='';
+  document.getElementById('an-img').value='';
+  document.getElementById('an-img-preview').innerHTML='';
+  _announceImgs=[];
+}
+
+function clearAnnounceFilters(){ ['al-team','al-channel','al-status','al-from','al-to'].forEach(function(id){ document.getElementById(id).value=''; }); renderAnnounceList(); }
+
+function renderAnnounceList(){
+  var ft=document.getElementById('al-team').value;
+  var fc=document.getElementById('al-channel').value;
+  var fs=document.getElementById('al-status').value;
+  var ff=document.getElementById('al-from').value;
+  var fto=document.getElementById('al-to').value;
+  var filtered=announces.filter(function(a){
+    if(ft&&a.team!==ft) return false;
+    if(fc&&a.channel!==fc) return false;
+    if(fs&&a.status!==fs) return false;
+    if(ff&&a.date<ff) return false;
+    if(fto&&a.date>fto) return false;
+    return true;
+  }).sort(function(a,b){ return b.date.localeCompare(a.date)||b.id-a.id; });
+
+  var kpiEl=document.getElementById('announcelist-kpi');
+  if(filtered.length){
+    kpiEl.style.display='grid';
+    var okCnt=filtered.filter(function(a){ return a.status==='all'; }).length;
+    var partialCnt=filtered.length-okCnt;
+    var lineCnt=filtered.filter(function(a){ return a.channel==='line'; }).length;
+    kpiEl.innerHTML=
+      '<div class="kpi"><div class="kpi-num">'+filtered.length+'</div><div class="kpi-label">รายการทั้งหมด</div></div>'+
+      '<div class="kpi"><div class="kpi-num">'+okCnt+'</div><div class="kpi-label">รับทราบทุกคน</div></div>'+
+      '<div class="kpi"><div class="kpi-num">'+partialCnt+'</div><div class="kpi-label">ยังไม่รับทราบครบ</div></div>'+
+      '<div class="kpi"><div class="kpi-num">'+lineCnt+'</div><div class="kpi-label">ผ่าน LINE</div></div>';
+  } else { kpiEl.style.display='none'; }
+
+  var body=document.getElementById('announcelist-body');
+  if(!filtered.length){ body.innerHTML='<div class="empty">ไม่มีข้อมูลค่ะ</div>'; return; }
+  var html='';
+  filtered.forEach(function(a){
+    var statusEl=a.status==='all'
+      ?'<span class="status-ok">✓ รับทราบทุกคน</span>'
+      :'<span class="status-partial">⚠ บางคนยังไม่รับทราบ</span>';
+    html+='<div class="announce-card">';
+    html+='<div class="announce-top"><div class="announce-meta">'+teamBadge(a.team)+channelBadge(a.channel)+'<span class="announce-date">'+fmtThai(a.date)+'</span></div>';
+    html+='<button class="btn btn-sm btn-danger" onclick="delAnnounce('+a.id+')">ลบ</button></div>';
+    html+='<div class="announce-body">'+esc(a.topic)+'</div>';
+    // แสดงรูป (ถ้ามี)
+    if(a.imgs&&a.imgs.length){
+      html+='<div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0;">';
+      a.imgs.forEach(function(src,ii){
+        if(!src) return;
+        html+='<img src="'+src+'" onclick="openImg(\''+a.id+'\','+ii+')" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid var(--border);cursor:pointer;" title="คลิกเพื่อดูรูปใหญ่">';
+      });
+      html+='</div>';
+    }
+    html+='<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">'+statusEl;
+    if(a.note) html+='<span style="font-size:12px;color:var(--text2)">'+esc(a.note)+'</span>';
+    html+='<button class="btn btn-sm" onclick="toggleAnnounceStatus('+a.id+')" style="margin-left:auto;font-size:11px">เปลี่ยนสถานะ</button>';
+    html+='</div></div>';
+  });
+  body.innerHTML=html;
+}
+
+function delAnnounce(id){
+  if(!confirm('ลบบันทึกนี้?')) return;
+  apiDelete('announce', id);
+  announces=announces.filter(function(a){ return a.id!==id; });
+  saveAnnounce(); updateCounter(); renderAnnounceList();
+}
+
+function toggleAnnounceStatus(id){
+  var a=announces.find(function(x){ return x.id===id; });
+  if(!a) return;
+  a.status=a.status==='all'?'partial':'all';
+  apiUpdate('announce', id, a);
+  saveAnnounce(); renderAnnounceList();
+}
+
+/* ---- EMPLOYEE DATA ---- */
+var EMP_KEY='akane_emp_v1';
+var employees=[];
+var _editEmpId=null;
+var _tempSalaries=[];
+var _viewEmpId=null;
+
+function loadEmps(){ try{ var d=localStorage.getItem(EMP_KEY); if(d) employees=JSON.parse(d); }catch(e){ employees=[]; } }
+function saveEmps(){ try{ localStorage.setItem(EMP_KEY,JSON.stringify(employees)); }catch(e){} }
+
+function workDuration(startDate){
+  if(!startDate) return '—';
+  var s=new Date(startDate), now=new Date();
+  var months=(now.getFullYear()-s.getFullYear())*12+(now.getMonth()-s.getMonth());
+  var yrs=Math.floor(months/12), mos=months%12;
+  var parts=[];
+  if(yrs) parts.push(yrs+' ปี');
+  if(mos) parts.push(mos+' เดือน');
+  return parts.length?parts.join(' '):'ไม่ถึง 1 เดือน';
+}
+
+function fmtMoney(n){ return n?parseInt(n).toLocaleString('th-TH')+'฿':'—'; }
+
+function getAge(bday){
+  if(!bday) return '—';
+  var b=new Date(bday), now=new Date();
+  var age=now.getFullYear()-b.getFullYear();
+  if(now.getMonth()<b.getMonth()||(now.getMonth()===b.getMonth()&&now.getDate()<b.getDate())) age--;
+  return age+' ปี';
+}
+
+function latestSalary(emp){
+  if(!emp.salaries||!emp.salaries.length) return '—';
+  var sorted=emp.salaries.slice().sort(function(a,b){ return b.month.localeCompare(a.month); });
+  return fmtMoney(sorted[0].amount)+' ('+fmtMonth(sorted[0].month)+')';
+}
+
+function fmtMonth(m){
+  if(!m) return '—';
+  var p=m.split('-');
+  var months=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  return months[parseInt(p[1])-1]+' '+(parseInt(p[0])+543);
+}
+
+/* ---- RENDER EMP LIST ---- */
+function renderEmpList(){
+  var q=(document.getElementById('el-search').value||'').trim().toLowerCase();
+  var ft=document.getElementById('el-team').value;
+  var filtered=employees.filter(function(e){
+    if(ft&&e.team!==ft) return false;
+    if(q&&(e.nick+e.name+e.code+e.pos).toLowerCase().indexOf(q)<0) return false;
+    return true;
+  }).sort(function(a,b){ return (a.nick||'').localeCompare(b.nick||''); });
+  var body=document.getElementById('emplist-body');
+  if(!filtered.length){ body.innerHTML='<div class="empty">ไม่มีข้อมูลพนักงานค่ะ — กด "+ เพิ่มพนักงาน" เพื่อเริ่มต้น</div>'; return; }
+  var html='';
+  filtered.forEach(function(e){
+    var initial=(e.nick||e.name||'?')[0].toUpperCase();
+    html+='<div class="emp-card" onclick="viewEmp('+e.id+')">';
+    html+='<div class="emp-avatar">'+initial+'</div>';
+    html+='<div class="emp-info">';
+    html+='<div class="emp-nick">'+esc(e.nick||'—')+'<span style="font-weight:400;color:var(--text2);font-size:13px;margin-left:8px">'+esc(e.name||'')+'</span></div>';
+    html+='<div class="emp-sub">'+(e.code?e.code+' · ':'')+esc(e.pos||'—')+'</div>';
+    html+='<div class="emp-badges">'+teamBadge(e.team||'other');
+    if(e.startDate) html+='<span style="font-size:11px;color:var(--text3)">ทำงาน '+workDuration(e.startDate)+'</span>';
+    html+='</div></div>';
+    html+='<div style="font-size:13px;color:var(--text2);text-align:right;flex-shrink:0;">';
+    html+='<div style="font-weight:500;color:var(--text)">'+latestSalary(e)+'</div>';
+    if(e.phone) html+='<div style="font-size:12px;margin-top:4px">📞 '+esc(e.phone)+'</div>';
+    html+='</div></div>';
+  });
+  body.innerHTML=html;
+}
+
+/* ---- VIEW EMP PROFILE ---- */
+function viewEmp(id){
+  _viewEmpId=id;
+  var e=employees.find(function(x){ return x.id===id; });
+  if(!e) return;
+  document.getElementById('pp-title').textContent=(e.nick||e.name||'โปรไฟล์พนักงาน');
+  var ls=getLeaveSummary(e);
+  var empTalks=getEmpTalks(e);
+  var empLeaves=getEmpLeaveRecords(e);
+  var initial=(e.nick||e.name||'?')[0].toUpperCase();
+
+  var html='';
+
+  /* ---- header ---- */
+  html+='<div style="display:flex;gap:16px;align-items:center;margin-bottom:20px;flex-wrap:wrap;">';
+  html+='<div class="emp-avatar" style="width:56px;height:56px;font-size:22px;">'+initial+'</div>';
+  html+='<div>';
+  html+='<div style="font-size:18px;font-weight:600;">'+esc(e.nick||'—')+'</div>';
+  html+='<div style="color:var(--text2);font-size:13px;">'+esc(e.name||'')+'</div>';
+  html+='<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;">'+teamBadge(e.team||'other');
+  if(e.pos) html+='<span style="font-size:12px;color:var(--text2);background:var(--surface2);padding:2px 8px;border-radius:20px;">'+esc(e.pos)+'</span>';
+  if(e.startDate) html+='<span style="font-size:12px;color:var(--text3);">ทำงาน '+workDuration(e.startDate)+'</span>';
+  html+='</div></div></div>';
+
+  /* ---- ข้อมูลส่วนตัว ---- */
+  html+='<div class="card"><div class="card-title">ข้อมูลส่วนตัว</div>';
+  html+='<div class="profile-grid">';
+  if(e.code) html+=pItem('รหัสพนักงาน', e.code);
+  if(e.phone) html+=pItem('เบอร์โทร', e.phone);
+  if(e.bday) html+=pItem('วันเกิด', fmtThai(e.bday)+' (อายุ '+getAge(e.bday)+')');
+  if(e.startDate) html+=pItem('วันเริ่มงาน', fmtThai(e.startDate));
+  if(e.addr) html+=pItem('ที่อยู่', e.addr, true);
+  html+='</div></div>';
+
+  /* ---- สรุปตัวเลขการลา ---- */
+  var totalLeave=ls.sick+ls.biz+ls.vac+ls.absent;
+  html+='<div class="card"><div class="card-title">สรุปการลา</div>';
+  html+='<div class="kpi-grid" style="grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:8px;margin-bottom:'+(empLeaves.length?'16px':'0')+';">';
+  html+='<div class="kpi"><div class="kpi-num">'+totalLeave+'</div><div class="kpi-label">วันลารวม</div></div>';
+  html+='<div class="kpi"><div class="kpi-num">'+ls.sick+'</div><div class="kpi-label">ลาป่วย</div></div>';
+  html+='<div class="kpi"><div class="kpi-num">'+ls.biz+'</div><div class="kpi-label">ลากิจ</div></div>';
+  html+='<div class="kpi"><div class="kpi-num">'+ls.vac+'</div><div class="kpi-label">พักร้อน</div></div>';
+  html+='<div class="kpi"><div class="kpi-num" style="color:var(--absent-t)">'+ls.absent+'</div><div class="kpi-label">ขาดงาน</div></div>';
+  html+='<div class="kpi"><div class="kpi-num" style="color:var(--late-t)">'+ls.late+'</div><div class="kpi-label">มาสาย (ครั้ง)</div></div>';
+  html+='<div class="kpi"><div class="kpi-num" style="color:var(--biz-t)">'+empTalks.length+'</div><div class="kpi-label">เรียกคุย</div></div>';
+  if(ls.resign) html+='<div class="kpi"><div class="kpi-num" style="color:var(--resign-t)">✓</div><div class="kpi-label">ลาออก</div></div>';
+  html+='</div>';
+  /* รายการลา */
+  if(empLeaves.length){
+    html+='<div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:8px;">รายการลาทั้งหมด ('+empLeaves.length+' รายการ)</div>';
+    html+='<div class="table-wrap"><table><thead><tr><th>วันที่</th><th>ประเภท</th><th>จำนวน</th></tr></thead><tbody>';
+    empLeaves.forEach(function(r){
+      var qty=r.type==='late'?r.lateCount+' ครั้ง':r.type==='resign'?'—':(r.days||0)+' วัน';
+      html+='<tr><td>'+fmtThai(r.date)+'</td><td>'+badge(r.type)+'</td><td>'+qty+'</td></tr>';
+    });
+    html+='</tbody></table></div>';
+  } else {
+    html+='<div style="color:var(--text3);font-size:13px;margin-top:4px;">ยังไม่มีประวัติการลาค่ะ</div>';
+  }
+  html+='</div>';
+
+  /* ---- ประวัติการเรียกคุย ---- */
+  html+='<div class="card"><div class="card-title">ประวัติการเรียกคุย ('+empTalks.length+' ครั้ง)</div>';
+  if(empTalks.length){
+    empTalks.forEach(function(t,i){
+      html+='<div style="padding:14px 0;'+(i<empTalks.length-1?'border-bottom:1px solid var(--border);':'')+'">';
+      html+='<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">';
+      html+=topicBadge(t.topic)+channelBadge(t.channel||'face');
+      html+='<span style="font-size:12px;color:var(--text3);font-family:var(--mono);">'+fmtThai(t.date)+'</span>';
+      html+='</div>';
+      html+='<div style="font-size:13.5px;color:var(--text);line-height:1.7;">'+esc(t.summary)+'</div>';
+      if(t.followup){
+        html+='<div style="margin-top:8px;padding:8px 12px;background:var(--surface2);border-radius:8px;font-size:12.5px;color:var(--text2);">';
+        html+='<span style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);">Follow up: </span>'+esc(t.followup);
+        html+='</div>';
+      }
+      html+='</div>';
+    });
+  } else {
+    html+='<div style="color:var(--text3);font-size:13px;">ยังไม่มีบันทึกการเรียกคุยค่ะ</div>';
+  }
+  html+='</div>';
+
+  /* ---- เงินเดือน ---- */
+  html+='<div class="card"><div class="card-title">ประวัติเงินเดือน</div>';
+  if(e.salaries&&e.salaries.length){
+    var sorted=e.salaries.slice().sort(function(a,b){ return b.month.localeCompare(a.month); });
+    html+='<div class="table-wrap"><table><thead><tr><th>เดือน</th><th>จำนวน</th><th></th></tr></thead><tbody>';
+    sorted.forEach(function(s,i){
+      html+='<tr><td>'+fmtMonth(s.month)+'</td>';
+      html+='<td '+(i===0?'style="font-weight:600;color:var(--green);"':'')+'">'+fmtMoney(s.amount)+'</td>';
+      html+='<td><button class="btn btn-sm btn-danger" onclick="delSalaryFromProfile('+e.id+',\''+s.month+'\')">ลบ</button></td></tr>';
+    });
+    html+='</tbody></table></div>';
+  } else {
+    html+='<div style="color:var(--text3);font-size:13px;margin-bottom:12px;">ยังไม่มีข้อมูลเงินเดือนค่ะ</div>';
+  }
+  html+='<div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;align-items:flex-end;">';
+  html+='<div class="field" style="flex:0 0 auto;min-width:0;"><label style="font-size:12px;color:var(--text2);font-weight:500;">เดือน</label>';
+  html+='<input type="month" id="pp-sal-month" style="padding:7px 10px;font-size:13px;border:1px solid var(--border2);border-radius:var(--radius);font-family:var(--font);"></div>';
+  html+='<div class="field" style="flex:0 0 auto;min-width:0;"><label style="font-size:12px;color:var(--text2);font-weight:500;">จำนวน (บาท)</label>';
+  html+='<input type="number" id="pp-sal-amount" placeholder="0" style="padding:7px 10px;font-size:13px;border:1px solid var(--border2);border-radius:var(--radius);font-family:var(--font);width:130px;"></div>';
+  html+='<button class="btn btn-primary btn-sm" onclick="addSalaryFromProfile('+e.id+')">+ เพิ่มเงินเดือน</button>';
+  html+='</div></div>';
+
+  document.getElementById('pp-body').innerHTML=html;
+  switchPage('empprofile');
+}
+
+function pItem(label, value, full){
+  return '<div class="profile-item'+(full?' style="grid-column:1/-1"':'')+'"><div class="profile-label">'+label+'</div><div class="profile-value">'+esc(String(value))+'</div></div>';
+}
+
+function empMatchNames(e){
+  // รวมทุกชื่อที่ใช้ได้ของพนักงานคนนี้
+  var names=[];
+  if(e.nick) names.push(e.nick.toLowerCase().trim());
+  if(e.name) names.push(e.name.toLowerCase().trim());
+  if(e.aliases) e.aliases.forEach(function(a){ if(a) names.push(a.toLowerCase().trim()); });
+  return names.filter(Boolean);
+}
+
+function empMatchRecord(e, recordName){
+  if(!recordName) return false;
+  var rn=recordName.toLowerCase().trim();
+  return empMatchNames(e).some(function(n){ return n===rn; });
+}
+
+function getLeaveSummary(e){
+  var s={sick:0,biz:0,vac:0,absent:0,late:0,resign:0};
+  records.filter(function(r){ return empMatchRecord(e, r.name); }).forEach(function(r){
+    if(r.type==='late') s.late+=r.lateCount||0;
+    else if(r.type==='resign') s.resign=1;
+    else if(s[r.type]!==undefined) s[r.type]+=r.days||0;
+  });
+  return s;
+}
+
+function getEmpTalks(e){
+  return talks.filter(function(t){ return empMatchRecord(e, t.name); })
+    .sort(function(a,b){ return b.date.localeCompare(a.date)||b.id-a.id; });
+}
+
+function getEmpLeaveRecords(e){
+  return records.filter(function(r){ return empMatchRecord(e, r.name); })
+    .sort(function(a,b){ return b.date.localeCompare(a.date)||b.id-a.id; });
+}
+
+function getTalkCount(e){
+  return getEmpTalks(e).length;
+}
+
+/* ---- ADD/EDIT EMP ---- */
+function editEmp(){
+  var e=employees.find(function(x){ return x.id===_viewEmpId; });
+  if(!e) return;
+  _editEmpId=e.id;
+  _tempSalaries=e.salaries?e.salaries.slice():[];
+  document.getElementById('ea-title').textContent='แก้ไขข้อมูล — '+esc(e.nick||e.name);
+  document.getElementById('ea-code').value=e.code||'';
+  document.getElementById('ea-nick').value=e.nick||'';
+  document.getElementById('ea-name').value=e.name||'';
+  document.getElementById('ea-pos').value=e.pos||'';
+  document.getElementById('ea-aliases').value=(e.aliases||[]).join(', ');
+  document.getElementById('ea-team').value=e.team||'telesales';
+  document.getElementById('ea-phone').value=e.phone||'';
+  document.getElementById('ea-bday').value=e.bday||'';
+  document.getElementById('ea-start').value=e.startDate||'';
+  document.getElementById('ea-addr').value=e.addr||'';
+  renderSalList();
+  switchPage('empadd');
+}
+
+function deleteEmp(){
+  var e=employees.find(function(x){ return x.id===_viewEmpId; });
+  if(!e) return;
+  if(!confirm('ลบข้อมูลพนักงาน "'+esc(e.nick||e.name)+'" ?\nไม่สามารถกู้คืนได้ค่ะ')) return;
+  employees=employees.filter(function(x){ return x.id!==_viewEmpId; });
+  saveEmps(); switchPage('emplist'); renderEmpList();
+}
+
+function addSalaryRow(){
+  var month=document.getElementById('ea-sal-month').value;
+  var amount=document.getElementById('ea-sal-amount').value;
+  if(!month||!amount){ alert('กรุณากรอกเดือนและจำนวนเงินค่ะ'); return; }
+  // replace ถ้าเดือนซ้ำ
+  _tempSalaries=_tempSalaries.filter(function(s){ return s.month!==month; });
+  _tempSalaries.push({ month:month, amount:parseFloat(amount) });
+  document.getElementById('ea-sal-month').value='';
+  document.getElementById('ea-sal-amount').value='';
+  renderSalList();
+}
+
+function renderSalList(){
+  var el=document.getElementById('ea-sal-list'); if(!el) return;
+  if(!_tempSalaries.length){ el.innerHTML='<div style="color:var(--text3);font-size:13px;padding:4px 0">ยังไม่มีข้อมูลค่ะ</div>'; return; }
+  var sorted=_tempSalaries.slice().sort(function(a,b){ return b.month.localeCompare(a.month); });
+  var html='<table class="sal-table"><thead><tr><th>เดือน</th><th>จำนวน</th><th></th></tr></thead><tbody>';
+  sorted.forEach(function(s){
+    html+='<tr><td>'+fmtMonth(s.month)+'</td><td>'+fmtMoney(s.amount)+'</td>';
+    html+='<td><button class="btn btn-sm btn-danger" onclick="removeTempSal(\''+s.month+'\')">ลบ</button></td></tr>';
+  });
+  html+='</tbody></table>';
+  el.innerHTML=html;
+}
+
+function removeTempSal(month){
+  _tempSalaries=_tempSalaries.filter(function(s){ return s.month!==month; });
+  renderSalList();
+}
+
+function saveEmp(){
+  var nick=document.getElementById('ea-nick').value.trim();
+  var name=document.getElementById('ea-name').value.trim();
+  if(!nick&&!name){ showMsg('ea-msg','กรุณากรอกชื่อเล่นหรือชื่อ-นามสกุลค่ะ',false); return; }
+  var aliasStr=document.getElementById('ea-aliases').value.trim();
+  var data={
+    id: _editEmpId||Date.now(),
+    code: document.getElementById('ea-code').value.trim(),
+    nick: nick, name: name,
+    aliases: aliasStr ? aliasStr.split(',').map(function(s){ return s.trim(); }).filter(Boolean) : [],
+    pos: document.getElementById('ea-pos').value.trim(),
+    team: document.getElementById('ea-team').value,
+    phone: document.getElementById('ea-phone').value.trim(),
+    bday: document.getElementById('ea-bday').value,
+    startDate: document.getElementById('ea-start').value,
+    addr: document.getElementById('ea-addr').value.trim(),
+    salaries: _tempSalaries.slice()
+  };
+  if(_editEmpId){
+    var idx=employees.findIndex(function(e){ return e.id===_editEmpId; });
+    if(idx>=0) employees[idx]=data;
+  } else {
+    employees.push(data);
+  }
+  saveEmps();
+  _editEmpId=null; _tempSalaries=[];
+  showMsg('ea-msg','✓ บันทึกแล้วค่ะ',true);
+  setTimeout(function(){ renderEmpList(); switchPage('emplist'); },800);
+}
+
+function addSalaryFromProfile(empId){
+  var month=document.getElementById('pp-sal-month').value;
+  var amount=document.getElementById('pp-sal-amount').value;
+  if(!month||!amount){ alert('กรุณากรอกเดือนและจำนวนเงินค่ะ'); return; }
+  var e=employees.find(function(x){ return x.id===empId; });
+  if(!e) return;
+  if(!e.salaries) e.salaries=[];
+  e.salaries=e.salaries.filter(function(s){ return s.month!==month; });
+  e.salaries.push({ month:month, amount:parseFloat(amount) });
+  saveEmps();
+  viewEmp(empId);
+}
+
+function delSalaryFromProfile(empId, month){
+  var e=employees.find(function(x){ return x.id===empId; });
+  if(!e) return;
+  e.salaries=(e.salaries||[]).filter(function(s){ return s.month!==month; });
+  saveEmps(); viewEmp(empId);
+}
+
+// reset form เมื่อเข้าหน้าเพิ่มใหม่
+function resetEmpForm(){
+  _editEmpId=null; _tempSalaries=[];
+  document.getElementById('ea-title').textContent='เพิ่มพนักงาน';
+  ['ea-code','ea-nick','ea-name','ea-pos','ea-phone','ea-bday','ea-start','ea-addr','ea-aliases'].forEach(function(id){ document.getElementById(id).value=''; });
+  document.getElementById('ea-team').value='telesales';
+  renderSalList();
+}
+
+init();
+</script>
+</body>
+</html>
