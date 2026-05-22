@@ -734,18 +734,23 @@ tr:hover td{background:var(--accent-light);}
 
   <!-- PAGE: รายงาน KPI -->
   <div id="page-kpireport" class="page">
-    <div class="page-header"><div class="page-title">รายงาน KPI</div><div class="page-desc">ดูยอดรวมและเปรียบเทียบรายคน</div></div>
+    <div class="page-header"><div class="page-title">รายงาน KPI</div><div class="page-desc">ยอดรวมรายเดือนและเปรียบเทียบรายคน</div></div>
     <div class="filter-bar">
       <div class="field"><label>ชื่อ (ว่าง=ทุกคน)</label><input type="text" id="kr-name" placeholder="ทุกคน" oninput="renderKpiReport()"></div>
-      <div class="field"><label>ช่วงเวลา</label>
-        <select id="kr-range" onchange="toggleKpiCustom()">
-          <option value="week">7 วันล่าสุด</option>
-          <option value="month">เดือนนี้</option>
-          <option value="custom">กำหนดเอง</option>
+      <div class="field"><label>มุมมอง</label>
+        <select id="kr-view" onchange="renderKpiReport()">
+          <option value="monthly">สรุปรายเดือน</option>
+          <option value="person">เปรียบเทียบรายคน</option>
         </select>
       </div>
-      <div class="field" id="kr-from-f" style="display:none"><label>จาก</label><input type="date" id="kr-from" onchange="renderKpiReport()"></div>
-      <div class="field" id="kr-to-f" style="display:none"><label>ถึง</label><input type="date" id="kr-to" onchange="renderKpiReport()"></div>
+      <div class="field"><label>จำนวนเดือนย้อนหลัง</label>
+        <select id="kr-months" onchange="renderKpiReport()">
+          <option value="1">1 เดือน</option>
+          <option value="3" selected>3 เดือน</option>
+          <option value="6">6 เดือน</option>
+          <option value="12">12 เดือน</option>
+        </select>
+      </div>
       <button class="btn btn-sm btn-primary" onclick="renderKpiReport()">ดูข้อมูล</button>
     </div>
     <div id="kpireport-body"></div>
@@ -753,19 +758,14 @@ tr:hover td{background:var(--accent-light);}
 
   <!-- PAGE: Risk Dashboard -->
   <div id="page-risk" class="page">
-    <div class="page-header"><div class="page-title">Risk Dashboard</div><div class="page-desc">ภาพรวม Discipline Score และความเสี่ยงของพนักงานทุกคน</div></div>
+    <div class="page-header"><div class="page-title">Risk Dashboard</div><div class="page-desc">Discipline Score แยกรายเดือน — กดเลือกเดือนที่อยากดู</div></div>
     <div class="filter-bar">
-      <div class="field"><label>ช่วงเวลา (ลา/KPI)</label>
-        <select id="risk-range" onchange="toggleRiskCustom()">
-          <option value="month">เดือนนี้</option>
-          <option value="3month">3 เดือนล่าสุด</option>
-          <option value="custom">กำหนดเอง</option>
-        </select>
+      <div class="field"><label>เดือนที่ดู</label>
+        <input type="month" id="risk-month">
       </div>
-      <div class="field" id="risk-from-f" style="display:none"><label>จาก</label><input type="date" id="risk-from"></div>
-      <div class="field" id="risk-to-f" style="display:none"><label>ถึง</label><input type="date" id="risk-to"></div>
       <button class="btn btn-sm btn-primary" onclick="renderRisk()">คำนวณ</button>
     </div>
+    <div id="risk-kpi-summary" class="kpi-grid" style="display:none;margin-bottom:16px;"></div>
     <div id="risk-body"></div>
   </div>
 
@@ -883,6 +883,9 @@ function init(){
   loadScoreConfig();
   loadScoreConfigToForm();
   document.getElementById('kpi-date').value=fmtISO(new Date());
+  // ตั้ง default เดือนปัจจุบันใน Risk Dashboard
+  var today=new Date();
+  document.getElementById('risk-month').value=today.getFullYear()+'-'+pad(today.getMonth()+1);
 
   var today=new Date();
   document.getElementById('in-date').value=fmtISO(today);
@@ -2138,65 +2141,199 @@ function delKpi(id){
   saveKpi(); renderKpiRecent();
 }
 
-/* ---- KPI REPORT ---- */
-function toggleKpiCustom(){
-  var v=document.getElementById('kr-range').value;
-  document.getElementById('kr-from-f').style.display=v==='custom'?'block':'none';
-  document.getElementById('kr-to-f').style.display=v==='custom'?'block':'none';
-}
+/* ---- KPI REPORT (รายเดือน) ---- */
+function toggleKpiCustom(){ /* ไม่ใช้แล้ว */ }
 
-function getKpiRange(){
-  var v=document.getElementById('kr-range').value;
+function getMonthList(n){
+  // คืน array ของ {year, month, label, from, to} n เดือนย้อนหลัง
+  var result=[];
   var today=new Date();
-  if(v==='week'){ var f=new Date(today); f.setDate(today.getDate()-6); return {from:fmtISO(f),to:fmtISO(today)}; }
-  if(v==='month'){ return {from:fmtISO(new Date(today.getFullYear(),today.getMonth(),1)),to:fmtISO(today)}; }
-  var rf=document.getElementById('kr-from').value, rt=document.getElementById('kr-to').value;
-  if(!rf||!rt){ alert('กรุณาเลือกช่วงวันที่'); return null; }
-  return {from:rf,to:rt};
+  for(var i=0;i<n;i++){
+    var d=new Date(today.getFullYear(), today.getMonth()-i, 1);
+    var yr=d.getFullYear(), mo=d.getMonth();
+    var from=yr+'-'+pad(mo+1)+'-01';
+    var lastDay=new Date(yr, mo+1, 0).getDate();
+    var to=yr+'-'+pad(mo+1)+'-'+pad(lastDay);
+    var months=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+    result.push({ year:yr, month:mo, label:months[mo]+' '+(yr+543), from:from, to:to, key:yr+'-'+pad(mo+1) });
+  }
+  return result;
 }
 
 function renderKpiReport(){
-  var rng=getKpiRange(); if(!rng) return;
-  var rname=document.getElementById('kr-name').value.trim().toLowerCase();
-  var filtered=kpiRecords.filter(function(r){
-    if(rname&&r.name.toLowerCase().indexOf(rname)<0) return false;
-    return r.date>=rng.from&&r.date<=rng.to;
-  });
+  var rname=(document.getElementById('kr-name').value||'').trim().toLowerCase();
+  var view=document.getElementById('kr-view').value;
+  var nMonths=parseInt(document.getElementById('kr-months').value)||3;
+  var months=getMonthList(nMonths);
   var body=document.getElementById('kpireport-body');
-  if(!filtered.length){ body.innerHTML='<div class="empty">ไม่มีข้อมูล KPI ในช่วงนี้ค่ะ</div>'; return; }
 
-  // สรุปรายคน
-  var byName={};
-  filtered.forEach(function(r){
-    if(!byName[r.name]) byName[r.name]={sales:0,calls:0,orders:0,live:0,days:0};
-    byName[r.name].sales+=r.sales;
-    byName[r.name].calls+=r.calls;
-    byName[r.name].orders+=r.orders;
-    byName[r.name].live+=r.live;
-    byName[r.name].days++;
-  });
+  // กรองชื่อ
+  var names=getNames();
+  if(rname) names=names.filter(function(n){ return n.toLowerCase().indexOf(rname)>=0; });
 
-  var html='<div class="table-wrap"><table><thead><tr><th>ชื่อ</th><th>วันที่กรอก</th><th>ยอดขายรวม</th><th>สายรวม</th><th>Order รวม</th><th>Live รวม</th></tr></thead><tbody>';
-  Object.keys(byName).sort().forEach(function(nm){
-    var d=byName[nm];
-    html+='<tr><td style="font-weight:500">'+nm+'</td><td>'+d.days+' วัน</td><td style="font-weight:600;color:var(--green)">'+fmtMoney(d.sales)+'</td><td>'+d.calls+'</td><td>'+d.orders+'</td><td>'+fmtMoney(d.live)+'</td></tr>';
-  });
-  html+='</tbody></table></div>';
+  if(!names.length){ body.innerHTML='<div class="empty">ไม่มีข้อมูลค่ะ</div>'; return; }
 
-  // grand total
-  var gt={sales:0,calls:0,orders:0,live:0};
-  Object.values(byName).forEach(function(d){ gt.sales+=d.sales; gt.calls+=d.calls; gt.orders+=d.orders; gt.live+=d.live; });
-  html+='<div class="card" style="margin-top:14px"><div class="card-title">รวมทั้งหมด</div>';
-  html+='<div class="kpi-grid">';
-  html+='<div class="kpi"><div class="kpi-num">'+fmtMoney(gt.sales)+'</div><div class="kpi-label">ยอดขายรวม</div></div>';
-  html+='<div class="kpi"><div class="kpi-num">'+gt.calls+'</div><div class="kpi-label">สายรวม</div></div>';
-  html+='<div class="kpi"><div class="kpi-num">'+gt.orders+'</div><div class="kpi-label">Order รวม</div></div>';
-  html+='<div class="kpi"><div class="kpi-num">'+fmtMoney(gt.live)+'</div><div class="kpi-label">Live รวม</div></div>';
-  html+='</div></div>';
-  body.innerHTML=html;
+  var html='';
+
+  if(view==='monthly'){
+    // แสดงรายเดือน — แต่ละเดือนมีตารางสรุปรายคน
+    months.forEach(function(m){
+      var filtered=kpiRecords.filter(function(r){ return r.date>=m.from&&r.date<=m.to; });
+      if(rname) filtered=filtered.filter(function(r){ return r.name.toLowerCase().indexOf(rname)>=0; });
+
+      html+='<div class="card" style="margin-bottom:14px;">';
+      html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">';
+      html+='<div class="card-title" style="margin-bottom:0;">'+m.label+'</div>';
+
+      if(!filtered.length){
+        html+='</div><div style="color:var(--text3);font-size:13px;">ไม่มีข้อมูลเดือนนี้ค่ะ</div></div>';
+        return;
+      }
+
+      // รวมยอดเดือน
+      var totSales=filtered.reduce(function(s,r){ return s+r.sales; },0);
+      var totCalls=filtered.reduce(function(s,r){ return s+r.calls; },0);
+      var totOrders=filtered.reduce(function(s,r){ return s+r.orders; },0);
+      var totLive=filtered.reduce(function(s,r){ return s+r.live; },0);
+      html+='<div style="font-size:12px;color:var(--text2);">รวม: <b>'+fmtMoney(totSales)+'</b></div>';
+      html+='</div>';
+
+      // KPI chips
+      html+='<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">';
+      html+='<div class="kpi-chip"><span class="kpi-chip-val" style="color:var(--green);">'+fmtMoney(totSales)+'</span>ยอดขาย</div>';
+      html+='<div class="kpi-chip"><span class="kpi-chip-val">'+totCalls+'</span>สายโทร</div>';
+      html+='<div class="kpi-chip"><span class="kpi-chip-val">'+totOrders+'</span>Order</div>';
+      html+='<div class="kpi-chip"><span class="kpi-chip-val">'+fmtMoney(totLive)+'</span>Live</div>';
+      html+='</div>';
+
+      // ตารางรายคน
+      var byName={};
+      filtered.forEach(function(r){
+        if(!byName[r.name]) byName[r.name]={sales:0,calls:0,orders:0,live:0,days:0};
+        byName[r.name].sales+=r.sales;
+        byName[r.name].calls+=r.calls;
+        byName[r.name].orders+=r.orders;
+        byName[r.name].live+=r.live;
+        byName[r.name].days++;
+      });
+
+      // เรียงตามยอดขายมากสุด
+      var sorted=Object.keys(byName).sort(function(a,b){ return byName[b].sales-byName[a].sales; });
+      html+='<div class="table-wrap"><table><thead><tr><th>ชื่อ</th><th>ยอดขาย</th><th>สาย</th><th>Order</th><th>Live</th><th>วันที่กรอก</th></tr></thead><tbody>';
+      sorted.forEach(function(nm, idx){
+        var d=byName[nm];
+        var medal=idx===0?'🥇 ':idx===1?'🥈 ':idx===2?'🥉 ':'';
+        html+='<tr>';
+        html+='<td style="font-weight:500">'+medal+nm+'</td>';
+        html+='<td style="font-weight:600;color:var(--green);">'+fmtMoney(d.sales)+'</td>';
+        html+='<td>'+d.calls+'</td>';
+        html+='<td>'+d.orders+'</td>';
+        html+='<td>'+fmtMoney(d.live)+'</td>';
+        html+='<td style="color:var(--text3);">'+d.days+' วัน</td>';
+        html+='</tr>';
+      });
+      html+='</tbody></table></div>';
+      html+='</div>';
+    });
+
+  } else {
+    // มุมมองเปรียบเทียบรายคน — แต่ละคนมีแถวต่อเดือน
+    html+='<div class="table-wrap"><table><thead><tr><th>ชื่อ</th>';
+    months.slice().reverse().forEach(function(m){ html+='<th>'+m.label+'</th>'; });
+    html+='<th>รวม</th></tr></thead><tbody>';
+
+    names.forEach(function(nm){
+      var totalAll=0;
+      html+='<tr><td style="font-weight:500">'+nm+'</td>';
+      months.slice().reverse().forEach(function(m){
+        var data=kpiRecords.filter(function(r){ return r.name===nm&&r.date>=m.from&&r.date<=m.to; });
+        var total=data.reduce(function(s,r){ return s+r.sales; },0);
+        totalAll+=total;
+        html+='<td>'+(total?fmtMoney(total):'—')+'</td>';
+      });
+      html+='<td style="font-weight:600;color:var(--green);">'+fmtMoney(totalAll)+'</td>';
+      html+='</tr>';
+    });
+    html+='</tbody></table></div>';
+  }
+
+  body.innerHTML=html||'<div class="empty">ไม่มีข้อมูลค่ะ</div>';
 }
 
-/* ---- DISCIPLINE SCORE ---- */
+/* ---- RISK DASHBOARD (แยกรายเดือน) ---- */
+function toggleRiskCustom(){ /* ไม่ใช้แล้ว */ }
+function getRiskRange(){ return null; /* ไม่ใช้แล้ว */ }
+
+function renderRisk(){
+  var monthVal=document.getElementById('risk-month').value;
+  if(!monthVal){ alert('กรุณาเลือกเดือนที่ต้องการดูค่ะ'); return; }
+
+  // คำนวณ from/to ของเดือนที่เลือก
+  var p=monthVal.split('-');
+  var yr=parseInt(p[0]), mo=parseInt(p[1])-1;
+  var from=fmtISO(new Date(yr,mo,1));
+  var lastDay=new Date(yr,mo+1,0).getDate();
+  var to=yr+'-'+pad(mo+1)+'-'+pad(lastDay);
+  var months=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  var monthLabel=months[mo]+' '+(yr+543);
+
+  var names=getNames();
+  var body=document.getElementById('risk-body');
+  var summEl=document.getElementById('risk-kpi-summary');
+
+  if(!names.length){ body.innerHTML='<div class="empty">ยังไม่มีข้อมูลพนักงานค่ะ</div>'; summEl.style.display='none'; return; }
+
+  var results=names.map(function(nm){
+    return { name:nm, score:calcScore(nm,from,to) };
+  }).sort(function(a,b){ return a.score-b.score; });
+
+  // KPI summary
+  var redCnt=results.filter(function(r){ return r.score<scoreConfig.red; }).length;
+  var yelCnt=results.filter(function(r){ return r.score>=scoreConfig.red&&r.score<scoreConfig.green; }).length;
+  var grnCnt=results.filter(function(r){ return r.score>=scoreConfig.green; }).length;
+
+  summEl.style.display='grid';
+  summEl.innerHTML=
+    '<div class="kpi"><div class="kpi-num" style="color:#DC2626">'+redCnt+'</div><div class="kpi-label">🔴 เสี่ยง</div></div>'+
+    '<div class="kpi"><div class="kpi-num" style="color:#D97706">'+yelCnt+'</div><div class="kpi-label">🟡 ระวัง</div></div>'+
+    '<div class="kpi"><div class="kpi-num" style="color:#2D6A4F">'+grnCnt+'</div><div class="kpi-label">🟢 ดี</div></div>'+
+    '<div class="kpi"><div class="kpi-num">'+names.length+'</div><div class="kpi-label">ทั้งหมด</div></div>';
+
+  var html='<div style="font-size:12px;color:var(--text2);margin-bottom:12px;font-family:var(--mono);">เดือน: '+monthLabel+' ('+fmtThai(from)+' – '+fmtThai(to)+')</div>';
+
+  results.forEach(function(r){
+    var risk=getRiskLevel(r.score);
+    var emp=employees.find(function(e){ return empMatchRecord(e,r.name); });
+    var pos=emp?esc(emp.pos||''):'';
+
+    var empLeaves=records.filter(function(rec){ return (rec.name||'').toLowerCase()===r.name.toLowerCase()&&rec.date>=from&&rec.date<=to; });
+    var talkCnt=talks.filter(function(t){ return (t.name||'').toLowerCase()===r.name.toLowerCase()&&t.date>=from&&t.date<=to; }).length;
+    var absent=empLeaves.filter(function(l){ return l.type==='absent'; }).reduce(function(s,l){ return s+(l.days||0); },0);
+    var late=empLeaves.filter(function(l){ return l.type==='late'; }).reduce(function(s,l){ return s+(l.lateCount||0); },0);
+    var sick=empLeaves.filter(function(l){ return l.type==='sick'; }).reduce(function(s,l){ return s+(l.days||0); },0);
+    var kpiData=kpiRecords.filter(function(k){ return (k.name||'').toLowerCase()===r.name.toLowerCase()&&k.date>=from&&k.date<=to; });
+    var totalSales=kpiData.reduce(function(s,k){ return s+(k.sales||0); },0);
+
+    html+='<div class="risk-card" onclick="viewEmpByName(\''+r.name+'\')">';
+    html+='<div class="risk-badge '+risk.cls+'">'+risk.label.split(' ')[0]+'</div>';
+    html+='<div class="risk-info">';
+    html+='<div class="risk-name">'+r.name+(pos?' <span style="font-weight:400;color:var(--text2);font-size:12px;">'+pos+'</span>':'')+'</div>';
+    html+='<div class="risk-sub" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px;">';
+    if(absent) html+='<span style="color:var(--absent-t);">ขาด '+absent+' วัน</span>';
+    if(sick)   html+='<span>ป่วย '+sick+' วัน</span>';
+    if(late)   html+='<span style="color:var(--late-t);">สาย '+late+' ครั้ง</span>';
+    if(talkCnt) html+='<span style="color:var(--biz-t);">คุย '+talkCnt+' ครั้ง</span>';
+    if(totalSales) html+='<span style="color:var(--green);">ยอด '+fmtMoney(totalSales)+'</span>';
+    if(!absent&&!sick&&!late&&!talkCnt&&!totalSales) html+='<span style="color:var(--text3);">ไม่มีข้อมูลเดือนนี้</span>';
+    html+='</div>';
+    html+='<div class="score-bar-wrap"><div class="score-bar '+risk.barCls+'" style="width:'+r.score+'%;"></div></div>';
+    html+='</div>';
+    html+='<div class="risk-score" style="color:'+(risk.level==='red'?'#DC2626':risk.level==='yellow'?'#D97706':'#2D6A4F')+';">'+r.score+'</div>';
+    html+='</div>';
+  });
+
+  body.innerHTML=html;
+}
 function calcScore(empName, fromDate, toDate){
   var n=(empName||'').toLowerCase();
   var score=100;
@@ -2228,76 +2365,6 @@ function getRiskLevel(score){
   if(score>=scoreConfig.green) return {level:'green',label:'🟢 ดี',cls:'risk-green',barCls:'score-green'};
   if(score>=scoreConfig.yellow) return {level:'yellow',label:'🟡 ระวัง',cls:'risk-yellow',barCls:'score-yellow'};
   return {level:'red',label:'🔴 เสี่ยง',cls:'risk-red',barCls:'score-red'};
-}
-
-function toggleRiskCustom(){
-  var v=document.getElementById('risk-range').value;
-  document.getElementById('risk-from-f').style.display=v==='custom'?'block':'none';
-  document.getElementById('risk-to-f').style.display=v==='custom'?'block':'none';
-}
-
-function getRiskRange(){
-  var v=document.getElementById('risk-range').value;
-  var today=new Date();
-  if(v==='month'){ return {from:fmtISO(new Date(today.getFullYear(),today.getMonth(),1)),to:fmtISO(today)}; }
-  if(v==='3month'){ var f=new Date(today); f.setMonth(f.getMonth()-3); return {from:fmtISO(f),to:fmtISO(today)}; }
-  var rf=document.getElementById('risk-from').value, rt=document.getElementById('risk-to').value;
-  if(!rf||!rt){ alert('กรุณาเลือกช่วงวันที่'); return null; }
-  return {from:rf,to:rt};
-}
-
-function renderRisk(){
-  var rng=getRiskRange(); if(!rng) return;
-  var names=getNames();
-  var body=document.getElementById('risk-body');
-  if(!names.length){ body.innerHTML='<div class="empty">ยังไม่มีข้อมูลพนักงานค่ะ</div>'; return; }
-
-  var results=names.map(function(nm){
-    return { name:nm, score:calcScore(nm,rng.from,rng.to) };
-  }).sort(function(a,b){ return a.score-b.score; }); // เรียงจากเสี่ยงสุด
-
-  // KPI summary
-  var redCount=results.filter(function(r){ return r.score<scoreConfig.red; }).length;
-  var yellowCount=results.filter(function(r){ return r.score>=scoreConfig.red&&r.score<scoreConfig.green; }).length;
-  var greenCount=results.filter(function(r){ return r.score>=scoreConfig.green; }).length;
-
-  var html='<div class="kpi-grid" style="margin-bottom:16px;">';
-  html+='<div class="kpi"><div class="kpi-num" style="color:#DC2626">'+redCount+'</div><div class="kpi-label">🔴 เสี่ยง</div></div>';
-  html+='<div class="kpi"><div class="kpi-num" style="color:#D97706">'+yellowCount+'</div><div class="kpi-label">🟡 ระวัง</div></div>';
-  html+='<div class="kpi"><div class="kpi-num" style="color:#2D6A4F">'+greenCount+'</div><div class="kpi-label">🟢 ดี</div></div>';
-  html+='<div class="kpi"><div class="kpi-num">'+names.length+'</div><div class="kpi-label">ทั้งหมด</div></div>';
-  html+='</div>';
-
-  results.forEach(function(r){
-    var risk=getRiskLevel(r.score);
-    var emp=employees.find(function(e){ return empMatchRecord(e,r.name); });
-    var pos=emp?esc(emp.pos||''):'';
-    var team=emp?teamThai(emp.team||''):'';
-
-    // หาข้อมูลย่อ
-    var empLeaves=records.filter(function(rec){ return (rec.name||'').toLowerCase()===r.name.toLowerCase()&&rec.date>=rng.from&&rec.date<=rng.to; });
-    var talkCount=talks.filter(function(t){ return (t.name||'').toLowerCase()===r.name.toLowerCase()&&t.date>=rng.from&&t.date<=rng.to; }).length;
-    var absent=empLeaves.filter(function(l){ return l.type==='absent'; }).reduce(function(s,l){ return s+l.days; },0);
-    var late=empLeaves.filter(function(l){ return l.type==='late'; }).reduce(function(s,l){ return s+l.lateCount; },0);
-    var kpiData=kpiRecords.filter(function(k){ return (k.name||'').toLowerCase()===r.name.toLowerCase()&&k.date>=rng.from&&k.date<=rng.to; });
-    var totalSales=kpiData.reduce(function(s,k){ return s+k.sales; },0);
-
-    html+='<div class="risk-card" onclick="viewEmpByName(\''+r.name+'\')">';
-    html+='<div class="risk-badge '+risk.cls+'">'+risk.label.split(' ')[0]+'</div>';
-    html+='<div class="risk-info">';
-    html+='<div class="risk-name">'+r.name+(pos?' <span style="font-weight:400;color:var(--text2);font-size:12px">'+pos+'</span>':'')+'</div>';
-    html+='<div class="risk-sub">';
-    if(absent) html+='ขาด '+absent+' วัน · ';
-    if(late) html+='สาย '+late+' ครั้ง · ';
-    if(talkCount) html+='คุย '+talkCount+' ครั้ง · ';
-    if(totalSales) html+='ยอด '+fmtMoney(totalSales);
-    html+='</div>';
-    html+='<div class="score-bar-wrap"><div class="score-bar '+risk.barCls+'" style="width:'+r.score+'%"></div></div>';
-    html+='</div>';
-    html+='<div class="risk-score" style="color:'+(risk.level==='red'?'#DC2626':risk.level==='yellow'?'#D97706':'#2D6A4F')+'">'+r.score+'</div>';
-    html+='</div>';
-  });
-  body.innerHTML=html;
 }
 
 function viewEmpByName(name){
