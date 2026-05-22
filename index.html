@@ -1912,7 +1912,97 @@ function viewEmp(id){
   html+='<button class="btn btn-primary btn-sm" onclick="addSalaryFromProfile('+e.id+')">+ เพิ่มเงินเดือน</button>';
   html+='</div></div>';
 
+  /* ---- เบิกเงินล่วงหน้า ---- */
+  var advances=e.advances||[];
+  var totalAdv=advances.reduce(function(s,a){ return s+a.amount; },0);
+  var totalPaid=advances.reduce(function(s,a){ return s+(a.paid||0); },0);
+  var remaining=totalAdv-totalPaid;
+
+  html+='<div class="card">';
+  html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">';
+  html+='<div class="card-title" style="margin-bottom:0;">เบิกเงินล่วงหน้า</div>';
+  if(remaining>0){
+    html+='<span style="background:#FEF0F0;color:#7C1A1A;padding:4px 12px;border-radius:20px;font-size:12.5px;font-weight:600;">ค้างอยู่ '+fmtMoney(remaining)+'</span>';
+  } else if(totalAdv>0){
+    html+='<span style="background:#EDFAF3;color:#1A6B3A;padding:4px 12px;border-radius:20px;font-size:12.5px;font-weight:600;">✓ ชำระครบแล้ว</span>';
+  }
+  html+='</div>';
+
+  // KPI ยอดรวม
+  if(totalAdv>0){
+    html+='<div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;">';
+    html+='<div class="kpi"><div class="kpi-num" style="color:var(--absent-t);">'+fmtMoney(totalAdv)+'</div><div class="kpi-label">เบิกทั้งหมด</div></div>';
+    html+='<div class="kpi"><div class="kpi-num" style="color:var(--green);">'+fmtMoney(totalPaid)+'</div><div class="kpi-label">หักคืนแล้ว</div></div>';
+    html+='<div class="kpi"><div class="kpi-num" style="color:'+(remaining>0?'#DC2626':'#2D6A4F')+';">'+fmtMoney(remaining)+'</div><div class="kpi-label">คงเหลือ</div></div>';
+    html+='</div>';
+  }
+
+  // รายการเบิก
+  if(advances.length){
+    html+='<div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:8px;">รายการเบิก</div>';
+    html+='<div class="table-wrap" style="margin-bottom:14px;"><table><thead><tr><th>วันที่เบิก</th><th>จำนวน</th><th>หักคืนแล้ว</th><th>คงเหลือ</th><th>หมายเหตุ</th><th></th></tr></thead><tbody>';
+    advances.slice().sort(function(a,b){ return b.date.localeCompare(a.date); }).forEach(function(a){
+      var bal=a.amount-(a.paid||0);
+      html+='<tr>';
+      html+='<td>'+fmtThai(a.date)+'</td>';
+      html+='<td style="font-weight:500;">'+fmtMoney(a.amount)+'</td>';
+      html+='<td style="color:var(--green);">'+fmtMoney(a.paid||0)+'</td>';
+      html+='<td style="font-weight:600;color:'+(bal>0?'#DC2626':'#2D6A4F')+';">'+fmtMoney(bal)+'</td>';
+      html+='<td style="color:var(--text2);font-size:12px;">'+esc(a.note||'')+'</td>';
+      html+='<td><button class="btn btn-sm btn-danger" onclick="delAdvance('+e.id+',\''+a.id+'\')">ลบ</button></td>';
+      html+='</tr>';
+      // รายการหักคืน
+      if(a.repayments&&a.repayments.length){
+        a.repayments.forEach(function(r){
+          html+='<tr style="background:var(--surface2);">';
+          html+='<td style="padding-left:24px;color:var(--text2);font-size:12px;">↳ หักคืน '+fmtMonth(r.month)+'</td>';
+          html+='<td></td>';
+          html+='<td style="color:var(--green);font-size:12px;">'+fmtMoney(r.amount)+'</td>';
+          html+='<td></td><td></td>';
+          html+='<td><button class="btn btn-sm btn-danger" onclick="delRepayment('+e.id+',\''+a.id+'\',\''+r.id+'\')">ลบ</button></td>';
+          html+='</tr>';
+        });
+      }
+    });
+    html+='</tbody></table></div>';
+  } else {
+    html+='<div style="color:var(--text3);font-size:13px;margin-bottom:12px;">ยังไม่มีการเบิกเงินล่วงหน้าค่ะ</div>';
+  }
+
+  // ฟอร์มเพิ่มการเบิก
+  html+='<div style="border-top:1px solid var(--border);padding-top:14px;margin-top:4px;">';
+  html+='<div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:10px;">+ เพิ่มการเบิก</div>';
+  html+='<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">';
+  html+='<div class="field" style="flex:0 0 auto;"><label style="font-size:12px;color:var(--text2);font-weight:500;">วันที่เบิก</label><input type="date" id="adv-date" style="padding:7px 10px;font-size:13px;border:1px solid var(--border2);border-radius:var(--radius);font-family:var(--font);"></div>';
+  html+='<div class="field" style="flex:0 0 auto;"><label style="font-size:12px;color:var(--text2);font-weight:500;">จำนวน (บาท)</label><input type="number" id="adv-amount" placeholder="0" style="padding:7px 10px;font-size:13px;border:1px solid var(--border2);border-radius:var(--radius);font-family:var(--font);width:120px;"></div>';
+  html+='<div class="field" style="flex:1;min-width:120px;"><label style="font-size:12px;color:var(--text2);font-weight:500;">หมายเหตุ</label><input type="text" id="adv-note" placeholder="เหตุผล / รายละเอียด" style="padding:7px 10px;font-size:13px;border:1px solid var(--border2);border-radius:var(--radius);font-family:var(--font);width:100%;"></div>';
+  html+='<button class="btn btn-primary btn-sm" onclick="addAdvance('+e.id+')">+ บันทึก</button>';
+  html+='</div></div>';
+
+  // ฟอร์มบันทึกหักคืน
+  if(advances.length&&remaining>0){
+    html+='<div style="border-top:1px solid var(--border);padding-top:14px;margin-top:14px;">';
+    html+='<div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:10px;">บันทึกการหักคืน</div>';
+    html+='<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">';
+    html+='<div class="field" style="flex:0 0 auto;"><label style="font-size:12px;color:var(--text2);font-weight:500;">รายการเบิก</label>';
+    html+='<select id="rep-adv-id" style="padding:7px 10px;font-size:13px;border:1px solid var(--border2);border-radius:var(--radius);font-family:var(--font);">';
+    advances.filter(function(a){ return (a.amount-(a.paid||0))>0; }).forEach(function(a){
+      html+='<option value="'+a.id+'">'+fmtThai(a.date)+' (ค้าง '+fmtMoney(a.amount-(a.paid||0))+')</option>';
+    });
+    html+='</select></div>';
+    html+='<div class="field" style="flex:0 0 auto;"><label style="font-size:12px;color:var(--text2);font-weight:500;">หักเดือน</label><input type="month" id="rep-month" style="padding:7px 10px;font-size:13px;border:1px solid var(--border2);border-radius:var(--radius);font-family:var(--font);"></div>';
+    html+='<div class="field" style="flex:0 0 auto;"><label style="font-size:12px;color:var(--text2);font-weight:500;">จำนวนที่หัก (บาท)</label><input type="number" id="rep-amount" placeholder="0" style="padding:7px 10px;font-size:13px;border:1px solid var(--border2);border-radius:var(--radius);font-family:var(--font);width:120px;"></div>';
+    html+='<button class="btn btn-sm" onclick="addRepayment('+e.id+')" style="background:var(--green);color:#fff;border-color:var(--green);">✓ บันทึกหักคืน</button>';
+    html+='</div></div>';
+  }
+  html+='</div>';
+
   document.getElementById('pp-body').innerHTML=html;
+  // ตั้ง default วันที่
+  var todayEl=document.getElementById('adv-date');
+  if(todayEl) todayEl.value=fmtISO(new Date());
+  var repMonthEl=document.getElementById('rep-month');
+  if(repMonthEl){ var n=new Date(); repMonthEl.value=n.getFullYear()+'-'+pad(n.getMonth()+1); }
   switchPage('empprofile');
 }
 
@@ -2075,6 +2165,56 @@ function resetEmpForm(){
   ['ea-code','ea-nick','ea-name','ea-pos','ea-phone','ea-bday','ea-start','ea-addr','ea-aliases'].forEach(function(id){ document.getElementById(id).value=''; });
   document.getElementById('ea-team').value='telesales';
   renderSalList();
+}
+
+/* ---- ADVANCE PAYMENT ---- */
+function addAdvance(empId){
+  var date=document.getElementById('adv-date').value;
+  var amount=parseFloat(document.getElementById('adv-amount').value)||0;
+  var note=document.getElementById('adv-note').value.trim();
+  if(!date||!amount){ alert('กรุณากรอกวันที่และจำนวนเงินค่ะ'); return; }
+  var e=employees.find(function(x){ return x.id===empId; });
+  if(!e) return;
+  if(!e.advances) e.advances=[];
+  e.advances.push({ id:'adv_'+Date.now(), date:date, amount:amount, paid:0, note:note, repayments:[] });
+  saveEmps(); viewEmp(empId);
+}
+
+function delAdvance(empId, advId){
+  if(!confirm('ลบรายการเบิกนี้?\n(รายการหักคืนทั้งหมดของรายการนี้จะถูกลบด้วย)')) return;
+  var e=employees.find(function(x){ return x.id===empId; });
+  if(!e) return;
+  e.advances=(e.advances||[]).filter(function(a){ return a.id!==advId; });
+  saveEmps(); viewEmp(empId);
+}
+
+function addRepayment(empId){
+  var advId=document.getElementById('rep-adv-id').value;
+  var month=document.getElementById('rep-month').value;
+  var amount=parseFloat(document.getElementById('rep-amount').value)||0;
+  if(!month||!amount){ alert('กรุณากรอกเดือนและจำนวนที่หักค่ะ'); return; }
+  var e=employees.find(function(x){ return x.id===empId; });
+  if(!e) return;
+  var adv=(e.advances||[]).find(function(a){ return a.id===advId; });
+  if(!adv){ alert('ไม่พบรายการเบิกค่ะ'); return; }
+  var remaining=adv.amount-(adv.paid||0);
+  if(amount>remaining){ if(!confirm('จำนวนที่หักเกินยอดคงเหลือ ('+fmtMoney(remaining)+')\nต้องการบันทึกต่อไหมคะ?')) return; }
+  if(!adv.repayments) adv.repayments=[];
+  adv.repayments.push({ id:'rep_'+Date.now(), month:month, amount:amount });
+  adv.paid=(adv.paid||0)+amount;
+  saveEmps(); viewEmp(empId);
+}
+
+function delRepayment(empId, advId, repId){
+  if(!confirm('ลบรายการหักคืนนี้?')) return;
+  var e=employees.find(function(x){ return x.id===empId; });
+  if(!e) return;
+  var adv=(e.advances||[]).find(function(a){ return a.id===advId; });
+  if(!adv) return;
+  var rep=(adv.repayments||[]).find(function(r){ return r.id===repId; });
+  if(rep) adv.paid=Math.max(0,(adv.paid||0)-rep.amount);
+  adv.repayments=(adv.repayments||[]).filter(function(r){ return r.id!==repId; });
+  saveEmps(); viewEmp(empId);
 }
 
 /* ================================================================
