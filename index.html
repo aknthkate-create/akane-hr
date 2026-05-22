@@ -937,11 +937,80 @@ function setSyncStatus(txt,ok){
   if(el){ el.textContent=txt; el.style.color=ok?'var(--green)':'var(--absent-t)'; }
 }
 
-/* ---- COERCE (แปลงค่าจาก Sheets) ---- */
-function coerceLeave(r){ return { id:+r.id||r.id, name:String(r.name||''), date:String(r.date||''), type:String(r.type||'sick'), days:+r.days||0, lateCount:+r.lateCount||0 }; }
-function coerceTalk(r){ return { id:+r.id||r.id, name:String(r.name||''), date:String(r.date||''), topic:String(r.topic||'leave'), channel:String(r.channel||'face'), summary:String(r.summary||''), followup:String(r.followup||'') }; }
-function coercePlan(r){ return { id:+r.id||r.id, name:String(r.name||''), date:String(r.date||''), topic:String(r.topic||'leave'), channel:String(r.channel||'face'), note:String(r.note||''), done:r.done==='true'||r.done===true, summary:String(r.summary||''), followup:String(r.followup||'') }; }
-function coerceAnnounce(r){ return { id:+r.id||r.id, team:String(r.team||'all'), channel:String(r.channel||'line'), date:String(r.date||''), topic:String(r.topic||''), status:String(r.status||'all'), note:String(r.note||'') }; }
+/* ---- COERCE HELPERS ---- */
+function safeStr(v){ return (v===null||v===undefined||v==='null'||v==='undefined')?'':String(v); }
+function safeNum(v){ var n=parseFloat(v); return isNaN(n)?0:n; }
+function safeInt(v){ var n=parseInt(v); return isNaN(n)?0:n; }
+function safeDate(v){
+  // ถ้าเป็น Date string จาก Sheets เช่น "Fri Jan 03 2026..." → แปลงกลับ
+  if(!v||v==='null'||v==='undefined') return '';
+  var s=String(v);
+  // รูปแบบ YYYY-MM-DD → ใช้ได้เลย
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  // รูปแบบอื่น → พยายาม parse
+  var d=new Date(s);
+  if(!isNaN(d.getTime())){
+    return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
+  }
+  return s;
+}
+
+function coerceLeave(r){ return {
+  id:safeStr(r.id)||String(Date.now()),
+  name:safeStr(r.name), date:safeDate(r.date),
+  type:safeStr(r.type)||'sick',
+  days:safeNum(r.days), lateCount:safeInt(r.lateCount)
+}; }
+function coerceTalk(r){ return {
+  id:safeStr(r.id)||String(Date.now()),
+  name:safeStr(r.name), date:safeDate(r.date),
+  topic:safeStr(r.topic)||'leave', channel:safeStr(r.channel)||'face',
+  summary:safeStr(r.summary), followup:safeStr(r.followup)
+}; }
+function coercePlan(r){ return {
+  id:safeStr(r.id)||String(Date.now()),
+  name:safeStr(r.name), date:safeDate(r.date),
+  topic:safeStr(r.topic)||'leave', channel:safeStr(r.channel)||'face',
+  note:safeStr(r.note), done:r.done==='true'||r.done===true,
+  summary:safeStr(r.summary), followup:safeStr(r.followup)
+}; }
+function coerceAnnounce(r){ return {
+  id:safeStr(r.id)||String(Date.now()),
+  team:safeStr(r.team)||'all', channel:safeStr(r.channel)||'line',
+  date:safeDate(r.date), topic:safeStr(r.topic),
+  status:safeStr(r.status)||'all', note:safeStr(r.note),
+  imgs:r.imgs?safeStr(r.imgs).split('|||').filter(Boolean):[]
+}; }
+
+function coerceKpi(r){ return {
+  id:safeStr(r.id)||String(Date.now()),
+  name:safeStr(r.name), date:safeDate(r.date),
+  sales:safeNum(r.sales), calls:safeInt(r.calls),
+  orders:safeInt(r.orders), live:safeNum(r.live),
+  note:safeStr(r.note)
+}; }
+
+function coerceEmp(r){
+  var salaries=[];
+  var advances=[];
+  try{ if(r.salaries&&r.salaries!=='') salaries=JSON.parse(r.salaries); }catch(e){ salaries=[]; }
+  try{ if(r.advances&&r.advances!=='') advances=JSON.parse(r.advances); }catch(e){ advances=[]; }
+  var aliases=[];
+  try{
+    if(r.aliases&&r.aliases!==''){
+      var a=safeStr(r.aliases);
+      aliases=a.indexOf('[')===0?JSON.parse(a):a.split(',').map(function(s){ return s.trim(); }).filter(Boolean);
+    }
+  }catch(e){ aliases=[]; }
+  return {
+    id:safeStr(r.id)||String(Date.now()),
+    code:safeStr(r.code), nick:safeStr(r.nick), name:safeStr(r.name),
+    pos:safeStr(r.pos), team:safeStr(r.team),
+    phone:safeStr(r.phone), bday:safeDate(r.bday),
+    startDate:safeDate(r.startDate), addr:safeStr(r.addr),
+    aliases:aliases, salaries:salaries, advances:advances
+  };
+}
 
 /* ---- JSONP ENGINE ---- */
 var _cbIdx=0;
@@ -979,21 +1048,20 @@ function syncAll(silent){
       return;
     }
     var d=res.data;
-    var totalFromSheets=(d.leave||[]).length+(d.talks||[]).length+(d.plans||[]).length+(d.announce||[]).length;
-    var totalLocal=records.length+talks.length+plans.length+announces.length;
+    var totalFromSheets=(d.leave||[]).length+(d.talks||[]).length+(d.plans||[]).length+(d.announce||[]).length+(d.kpi||[]).length+(d.emp||[]).length;
+    var totalLocal=records.length+talks.length+plans.length+announces.length+kpiRecords.length+employees.length;
 
     // ถ้า Sheets ว่าง แต่ local มีข้อมูล — ไม่ทับ ถามก่อน
     if(totalFromSheets===0 && totalLocal>0){
       if(!silent){
         if(!confirm('Google Sheets ไม่มีข้อมูลค่ะ\n\nอยากให้ดึงข้อมูลจาก Sheets (จะล้างข้อมูลในเครื่อง) หรือยกเลิก?\n\nกด OK = ดึงจาก Sheets\nกด Cancel = ยกเลิก')) return;
       } else {
-        // auto sync แต่ Sheets ว่าง — ไม่ทำอะไร ใช้ local แทน
         setSyncStatus('⚠ Sheets ว่าง ใช้ข้อมูลในเครื่อง',false);
         return;
       }
     }
 
-    // เก็บรูปจาก announces เดิมไว้ก่อน (รูปไม่ sync ขึ้น Sheets)
+    // เก็บรูปจาก announces เดิมไว้ก่อน
     var imgCache={};
     announces.forEach(function(a){ if(a.imgs&&a.imgs.length) imgCache[a.id]=a.imgs; });
 
@@ -1002,15 +1070,18 @@ function syncAll(silent){
     if(d.plans)    plans=d.plans.map(coercePlan);
     if(d.announce) announces=d.announce.map(function(a){
       var r=coerceAnnounce(a);
-      // คืนรูปกลับถ้า id ตรงกัน
       if(imgCache[r.id]) r.imgs=imgCache[r.id];
       return r;
     });
+    if(d.kpi)      kpiRecords=d.kpi.map(coerceKpi);
+    if(d.emp)      employees=d.emp.map(coerceEmp);
 
     localStorage.setItem(DB_KEY,JSON.stringify(records));
     localStorage.setItem(TALK_KEY,JSON.stringify(talks));
     localStorage.setItem(PLAN_KEY,JSON.stringify(plans));
     localStorage.setItem(ANN_KEY,JSON.stringify(announces));
+    localStorage.setItem(KPI_KEY,JSON.stringify(kpiRecords));
+    localStorage.setItem(EMP_KEY,JSON.stringify(employees));
     updateDatalist(); updateCounter(); renderRecent();
     var now=new Date();
     setSyncStatus('✓ Sync '+pad(now.getHours())+':'+pad(now.getMinutes()),true);
@@ -1021,13 +1092,12 @@ function syncAll(silent){
 /* ---- PUSH ALL (clear → append ทีละ row ผ่าน JSONP) ---- */
 function pushAll(){
   if(!_gsUrl){ alert('กรุณากรอก Apps Script URL ก่อนค่ะ'); return; }
-  var total=records.length+talks.length+plans.length+announces.length;
+  var total=records.length+talks.length+plans.length+announces.length+kpiRecords.length+employees.length;
   if(!confirm('อัปโหลดข้อมูลทั้งหมด '+total+' รายการขึ้น Google Sheets?\n\n(จะใช้เวลาสักครู่ค่ะ)')) return;
 
   setSyncStatus('กำลังเตรียมอัปโหลด...','');
 
-  // step 1: clear ทุก sheet พร้อมกัน (parallel)
-  var sheets=['leave','talks','plans','announce'];
+  var sheets=['leave','talks','plans','announce','kpi','emp'];
   var cleared=0;
   var clearErr=false;
 
@@ -1045,13 +1115,14 @@ function pushAll(){
     });
   });
 
-  // step 2: append ทีละ row หลัง clear ครบ
   function startAppend(){
     var queue=[];
     records.forEach(function(r){   queue.push({sheet:'leave',   row:r}); });
     talks.forEach(function(r){     queue.push({sheet:'talks',   row:r}); });
     plans.forEach(function(r){     queue.push({sheet:'plans',   row:r}); });
     announces.forEach(function(r){ queue.push({sheet:'announce',row:r}); });
+    kpiRecords.forEach(function(r){ queue.push({sheet:'kpi',   row:r}); });
+    employees.forEach(function(r){ queue.push({sheet:'emp',    row:r}); });
 
     if(!queue.length){
       setSyncStatus('✓ อัปโหลดเสร็จ (ไม่มีข้อมูล)',true);
