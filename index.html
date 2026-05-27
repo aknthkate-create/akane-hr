@@ -1265,18 +1265,22 @@ function saveAnnounce(){
 
 /* ---- AUTO SYNC (debounce 4 วิ) ---- */
 var _autoSyncTimer=null;
+var _isSyncing=false;
+
 function scheduleAutoSync(){
   if(!_gsUrl) return;
   if(_autoSyncTimer) clearTimeout(_autoSyncTimer);
   setSyncStatus('⏳ รอ sync...','');
   _autoSyncTimer=setTimeout(function(){
     _autoSyncTimer=null;
+    if(_isSyncing){ scheduleAutoSync(); return; } // ถ้า sync อยู่ให้รอก่อน
     autoSyncAllSheets();
   }, 4000);
 }
 
 function autoSyncAllSheets(){
-  if(!_gsUrl) return;
+  if(!_gsUrl||_isSyncing) return;
+  _isSyncing=true;
   var sheets=[
     {key:'leave', data:records},
     {key:'talks', data:talks},
@@ -1288,6 +1292,7 @@ function autoSyncAllSheets(){
   var idx=0;
   function nextSheet(){
     if(idx>=sheets.length){
+      _isSyncing=false;
       var now=new Date();
       setSyncStatus('✓ Auto sync '+pad(now.getHours())+':'+pad(now.getMinutes()),true);
       return;
@@ -1295,7 +1300,7 @@ function autoSyncAllSheets(){
     var s=sheets[idx++];
     gsGet({action:'clearSheet',sheet:s.key}, function(res,err){
       if(err||!res||!res.ok){ nextSheet(); return; }
-      var rows=s.data.slice();
+      var rows=s.data.slice(); // snapshot ณ ตอนนั้น
       var ri=0;
       function nextRow(){
         if(ri>=rows.length){ nextSheet(); return; }
