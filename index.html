@@ -933,7 +933,16 @@ function init(){
   updateDatalist(); updateCounter(); renderRecent();
 
   // ถ้ามี URL → sync อัตโนมัติ
-  if(_gsUrl) syncAll(true);
+  if(_gsUrl){
+    var totalLocal=records.length+talks.length+plans.length+announces.length+kpiRecords.length+employees.length;
+    if(totalLocal>0){
+      // มีข้อมูลในเครื่อง → push ขึ้น Sheets ก่อน แล้วค่อย pull
+      autoSyncAllSheets();
+    } else {
+      // ไม่มีข้อมูลในเครื่อง → pull ลงมาจาก Sheets
+      syncAll(true);
+    }
+  }
 }
 
 /* ---- GOOGLE SHEETS SYNC ---- */
