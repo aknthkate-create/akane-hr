@@ -705,22 +705,61 @@ tr:hover td{background:var(--accent-light);}
 
   <!-- PAGE: บันทึก KPI รายวัน -->
   <div id="page-kpi" class="page">
-    <div class="page-header"><div class="page-title">บันทึก KPI รายวัน</div><div class="page-desc">กรอกข้อมูลยอดขาย สาย และ order ของพนักงานแต่ละคน</div></div>
+    <div class="page-header"><div class="page-title">บันทึก KPI รายวัน</div><div class="page-desc">เลือกทีมก่อน ระบบจะแสดง field ที่เหมาะสมให้ค่ะ</div></div>
     <div class="card">
       <div class="card-title">กรอกข้อมูล KPI</div>
       <div class="form-row">
         <div class="field"><label>ชื่อพนักงาน</label><input type="text" id="kpi-name" placeholder="ชื่อ-ชื่อเล่น" list="emp-list" autocomplete="off"></div>
         <div class="field"><label>วันที่</label><input type="date" id="kpi-date"></div>
+        <div class="field"><label>ทีม</label>
+          <select id="kpi-team" onchange="toggleKpiFields()">
+            <option value="">-- เลือกทีม --</option>
+            <option value="telesales">Telesales</option>
+            <option value="live">Live Streaming</option>
+            <option value="admin">Admin</option>
+            <option value="office">Office / Content</option>
+          </select>
+        </div>
       </div>
-      <div class="form-row">
-        <div class="field"><label>ยอดขาย (บาท)</label><input type="number" id="kpi-sales" placeholder="0" min="0"></div>
-        <div class="field"><label>จำนวนสายที่โทร</label><input type="number" id="kpi-calls" placeholder="0" min="0"></div>
+
+      <!-- Telesales fields -->
+      <div id="kpi-fields-telesales" style="display:none">
+        <div class="form-row">
+          <div class="field"><label>ยอดขาย (บาท)</label><input type="number" id="kpi-sales" placeholder="0" min="0"></div>
+          <div class="field"><label>จำนวนสายที่โทร</label><input type="number" id="kpi-calls" placeholder="0" min="0"></div>
+          <div class="field"><label>Order ที่ปิดได้</label><input type="number" id="kpi-orders" placeholder="0" min="0"></div>
+        </div>
       </div>
-      <div class="form-row">
-        <div class="field"><label>Order ที่ปิดได้</label><input type="number" id="kpi-orders" placeholder="0" min="0"></div>
-        <div class="field"><label>ยอด Live (บาท)</label><input type="number" id="kpi-live" placeholder="0" min="0"></div>
+
+      <!-- Live fields -->
+      <div id="kpi-fields-live" style="display:none">
+        <div class="form-row">
+          <div class="field"><label>ยอด Live (บาท)</label><input type="number" id="kpi-live" placeholder="0" min="0"></div>
+          <div class="field"><label>Order จาก Live</label><input type="number" id="kpi-live-orders" placeholder="0" min="0"></div>
+        </div>
       </div>
-      <div class="form-row">
+
+      <!-- Admin fields -->
+      <div id="kpi-fields-admin" style="display:none">
+        <div class="form-row">
+          <div class="field"><label>ยอดขาย (บาท)</label><input type="number" id="kpi-admin-sales" placeholder="0" min="0"></div>
+          <div class="field"><label>Order ที่ปิดได้</label><input type="number" id="kpi-admin-orders" placeholder="0" min="0"></div>
+        </div>
+      </div>
+
+      <!-- Office/Content fields -->
+      <div id="kpi-fields-office" style="display:none">
+        <div class="form-row">
+          <div class="field"><label>งานที่ได้รับมอบหมาย</label><input type="number" id="kpi-task-total" placeholder="0" min="0"></div>
+          <div class="field"><label>งานที่ทำเสร็จแล้ว</label><input type="number" id="kpi-task-done" placeholder="0" min="0"></div>
+        </div>
+        <div class="form-row">
+          <div class="field"><label>งานที่ค้างอยู่</label><input type="number" id="kpi-task-pending" placeholder="0" min="0"></div>
+          <div class="field"><label>% ผ่านการตรวจ</label><input type="number" id="kpi-task-pass" placeholder="0" min="0" max="100" step="1"></div>
+        </div>
+      </div>
+
+      <div class="form-row" id="kpi-submit-row" style="display:none">
         <div class="field" style="flex:2"><label>หมายเหตุ</label><input type="text" id="kpi-note" placeholder="ไม่บังคับ"></div>
         <button class="btn btn-primary" onclick="addKpi()">+ บันทึก</button>
       </div>
@@ -1051,10 +1090,10 @@ function syncAll(silent){
     var totalFromSheets=(d.leave||[]).length+(d.talks||[]).length+(d.plans||[]).length+(d.announce||[]).length+(d.kpi||[]).length+(d.emp||[]).length;
     var totalLocal=records.length+talks.length+plans.length+announces.length+kpiRecords.length+employees.length;
 
-    // ถ้า Sheets ว่าง แต่ local มีข้อมูล — ไม่ทับ ถามก่อน
+    // ถ้า Sheets ว่างทั้งหมด แต่ local มีข้อมูล — ไม่ทับ
     if(totalFromSheets===0 && totalLocal>0){
       if(!silent){
-        if(!confirm('Google Sheets ไม่มีข้อมูลค่ะ\n\nอยากให้ดึงข้อมูลจาก Sheets (จะล้างข้อมูลในเครื่อง) หรือยกเลิก?\n\nกด OK = ดึงจาก Sheets\nกด Cancel = ยกเลิก')) return;
+        if(!confirm('Google Sheets ไม่มีข้อมูลค่ะ\n\nกด OK = ดึงจาก Sheets (ล้างข้อมูลในเครื่อง)\nกด Cancel = ยกเลิก')) return;
       } else {
         setSyncStatus('⚠ Sheets ว่าง ใช้ข้อมูลในเครื่อง',false);
         return;
@@ -1065,16 +1104,17 @@ function syncAll(silent){
     var imgCache={};
     announces.forEach(function(a){ if(a.imgs&&a.imgs.length) imgCache[a.id]=a.imgs; });
 
-    if(d.leave)    records=d.leave.map(coerceLeave);
-    if(d.talks)    talks=d.talks.map(coerceTalk);
-    if(d.plans)    plans=d.plans.map(coercePlan);
-    if(d.announce) announces=d.announce.map(function(a){
+    // แต่ละ sheet — ดึงเฉพาะที่ Sheets มีข้อมูล ถ้าว่างให้คง local ไว้
+    if(d.leave&&d.leave.length)    records=d.leave.map(coerceLeave);
+    if(d.talks&&d.talks.length)    talks=d.talks.map(coerceTalk);
+    if(d.plans&&d.plans.length)    plans=d.plans.map(coercePlan);
+    if(d.announce&&d.announce.length) announces=d.announce.map(function(a){
       var r=coerceAnnounce(a);
       if(imgCache[r.id]) r.imgs=imgCache[r.id];
       return r;
     });
-    if(d.kpi)      kpiRecords=d.kpi.map(coerceKpi);
-    if(d.emp)      employees=d.emp.map(coerceEmp);
+    if(d.kpi&&d.kpi.length)        kpiRecords=d.kpi.map(coerceKpi);
+    if(d.emp&&d.emp.length)        employees=d.emp.map(coerceEmp);
 
     localStorage.setItem(DB_KEY,JSON.stringify(records));
     localStorage.setItem(TALK_KEY,JSON.stringify(talks));
@@ -1195,9 +1235,9 @@ function importJSON(e){
   reader.readAsText(file);
 }
 
-function saveLeave(){ try{ localStorage.setItem(DB_KEY,JSON.stringify(records)); }catch(e){} }
-function saveTalk(){  try{ localStorage.setItem(TALK_KEY,JSON.stringify(talks));  }catch(e){} }
-function savePlan(){  try{ localStorage.setItem(PLAN_KEY,JSON.stringify(plans));  }catch(e){} }
+function saveLeave(){ try{ localStorage.setItem(DB_KEY,JSON.stringify(records)); }catch(e){} scheduleAutoSync(); }
+function saveTalk(){  try{ localStorage.setItem(TALK_KEY,JSON.stringify(talks));  }catch(e){} scheduleAutoSync(); }
+function savePlan(){  try{ localStorage.setItem(PLAN_KEY,JSON.stringify(plans));  }catch(e){} scheduleAutoSync(); }
 var IMG_KEY='akane_imgs_v1'; // เก็บรูปแยก key
 
 function saveImgs(){
@@ -1220,6 +1260,55 @@ function loadImgs(){
 
 function saveAnnounce(){
   try{ localStorage.setItem(ANN_KEY,JSON.stringify(announces)); }catch(e){}
+  scheduleAutoSync();
+}
+
+/* ---- AUTO SYNC (debounce 4 วิ) ---- */
+var _autoSyncTimer=null;
+function scheduleAutoSync(){
+  if(!_gsUrl) return;
+  if(_autoSyncTimer) clearTimeout(_autoSyncTimer);
+  setSyncStatus('⏳ รอ sync...','');
+  _autoSyncTimer=setTimeout(function(){
+    _autoSyncTimer=null;
+    autoSyncAllSheets();
+  }, 4000);
+}
+
+function autoSyncAllSheets(){
+  if(!_gsUrl) return;
+  var sheets=[
+    {key:'leave', data:records},
+    {key:'talks', data:talks},
+    {key:'plans', data:plans},
+    {key:'announce', data:announces},
+    {key:'kpi', data:kpiRecords},
+    {key:'emp', data:employees}
+  ];
+  var idx=0;
+  function nextSheet(){
+    if(idx>=sheets.length){
+      var now=new Date();
+      setSyncStatus('✓ Auto sync '+pad(now.getHours())+':'+pad(now.getMinutes()),true);
+      return;
+    }
+    var s=sheets[idx++];
+    gsGet({action:'clearSheet',sheet:s.key}, function(res,err){
+      if(err||!res||!res.ok){ nextSheet(); return; }
+      var rows=s.data.slice();
+      var ri=0;
+      function nextRow(){
+        if(ri>=rows.length){ nextSheet(); return; }
+        var row=rows[ri++];
+        gsGet({action:'appendRow',sheet:s.key,row:JSON.stringify(row)}, function(){
+          setTimeout(nextRow,150);
+        });
+      }
+      nextRow();
+    });
+  }
+  setSyncStatus('🔄 กำลัง sync...','');
+  nextSheet();
 }
 
 /* ---- HELPERS ---- */
@@ -1812,7 +1901,10 @@ var _tempSalaries=[];
 var _viewEmpId=null;
 
 function loadEmps(){ try{ var d=localStorage.getItem(EMP_KEY); if(d) employees=JSON.parse(d); }catch(e){ employees=[]; } }
-function saveEmps(){ try{ localStorage.setItem(EMP_KEY,JSON.stringify(employees)); }catch(e){} }
+function saveEmps(){
+  try{ localStorage.setItem(EMP_KEY,JSON.stringify(employees)); }catch(e){}
+  scheduleAutoSync();
+}
 
 function workDuration(startDate){
   if(!startDate) return '—';
@@ -1881,8 +1973,8 @@ function renderEmpList(){
 /* ---- VIEW EMP PROFILE ---- */
 function viewEmp(id){
   _viewEmpId=id;
-  var e=employees.find(function(x){ return x.id===id; });
-  if(!e) return;
+  var e=employees.find(function(x){ return String(x.id)===String(id); });
+  if(!e){ console.log('ไม่พบพนักงาน id:', id, 'employees:', employees.length); return; }
   document.getElementById('pp-title').textContent=(e.nick||e.name||'โปรไฟล์พนักงาน');
   var ls=getLeaveSummary(e);
   var empTalks=getEmpTalks(e);
@@ -2122,7 +2214,7 @@ function getTalkCount(e){
 
 /* ---- ADD/EDIT EMP ---- */
 function editEmp(){
-  var e=employees.find(function(x){ return x.id===_viewEmpId; });
+  var e=employees.find(function(x){ return String(x.id)===String(_viewEmpId); });
   if(!e) return;
   _editEmpId=e.id;
   _tempSalaries=e.salaries?e.salaries.slice():[];
@@ -2142,7 +2234,7 @@ function editEmp(){
 }
 
 function deleteEmp(){
-  var e=employees.find(function(x){ return x.id===_viewEmpId; });
+  var e=employees.find(function(x){ return String(x.id)===String(_viewEmpId); });
   if(!e) return;
   if(!confirm('ลบข้อมูลพนักงาน "'+esc(e.nick||e.name)+'" ?\nไม่สามารถกู้คืนได้ค่ะ')) return;
   employees=employees.filter(function(x){ return x.id!==_viewEmpId; });
@@ -2198,7 +2290,7 @@ function saveEmp(){
     salaries: _tempSalaries.slice()
   };
   if(_editEmpId){
-    var idx=employees.findIndex(function(e){ return e.id===_editEmpId; });
+    var idx=employees.findIndex(function(e){ return String(e.id)===String(_editEmpId); });
     if(idx>=0) employees[idx]=data;
   } else {
     employees.push(data);
@@ -2213,7 +2305,7 @@ function addSalaryFromProfile(empId){
   var month=document.getElementById('pp-sal-month').value;
   var amount=document.getElementById('pp-sal-amount').value;
   if(!month||!amount){ alert('กรุณากรอกเดือนและจำนวนเงินค่ะ'); return; }
-  var e=employees.find(function(x){ return x.id===empId; });
+  var e=employees.find(function(x){ return String(x.id)===String(empId); });
   if(!e) return;
   if(!e.salaries) e.salaries=[];
   e.salaries=e.salaries.filter(function(s){ return s.month!==month; });
@@ -2223,7 +2315,7 @@ function addSalaryFromProfile(empId){
 }
 
 function delSalaryFromProfile(empId, month){
-  var e=employees.find(function(x){ return x.id===empId; });
+  var e=employees.find(function(x){ return String(x.id)===String(empId); });
   if(!e) return;
   e.salaries=(e.salaries||[]).filter(function(s){ return s.month!==month; });
   saveEmps(); viewEmp(empId);
@@ -2244,7 +2336,7 @@ function addAdvance(empId){
   var amount=parseFloat(document.getElementById('adv-amount').value)||0;
   var note=document.getElementById('adv-note').value.trim();
   if(!date||!amount){ alert('กรุณากรอกวันที่และจำนวนเงินค่ะ'); return; }
-  var e=employees.find(function(x){ return x.id===empId; });
+  var e=employees.find(function(x){ return String(x.id)===String(empId); });
   if(!e) return;
   if(!e.advances) e.advances=[];
   e.advances.push({ id:'adv_'+Date.now(), date:date, amount:amount, paid:0, note:note, repayments:[] });
@@ -2253,7 +2345,7 @@ function addAdvance(empId){
 
 function delAdvance(empId, advId){
   if(!confirm('ลบรายการเบิกนี้?\n(รายการหักคืนทั้งหมดของรายการนี้จะถูกลบด้วย)')) return;
-  var e=employees.find(function(x){ return x.id===empId; });
+  var e=employees.find(function(x){ return String(x.id)===String(empId); });
   if(!e) return;
   e.advances=(e.advances||[]).filter(function(a){ return a.id!==advId; });
   saveEmps(); viewEmp(empId);
@@ -2264,7 +2356,7 @@ function addRepayment(empId){
   var month=document.getElementById('rep-month').value;
   var amount=parseFloat(document.getElementById('rep-amount').value)||0;
   if(!month||!amount){ alert('กรุณากรอกเดือนและจำนวนที่หักค่ะ'); return; }
-  var e=employees.find(function(x){ return x.id===empId; });
+  var e=employees.find(function(x){ return String(x.id)===String(empId); });
   if(!e) return;
   var adv=(e.advances||[]).find(function(a){ return a.id===advId; });
   if(!adv){ alert('ไม่พบรายการเบิกค่ะ'); return; }
@@ -2278,7 +2370,7 @@ function addRepayment(empId){
 
 function delRepayment(empId, advId, repId){
   if(!confirm('ลบรายการหักคืนนี้?')) return;
-  var e=employees.find(function(x){ return x.id===empId; });
+  var e=employees.find(function(x){ return String(x.id)===String(empId); });
   if(!e) return;
   var adv=(e.advances||[]).find(function(a){ return a.id===advId; });
   if(!adv) return;
@@ -2301,45 +2393,87 @@ var scoreConfig={
 };
 
 function loadKpi(){ try{ var d=localStorage.getItem(KPI_KEY); if(d) kpiRecords=JSON.parse(d); }catch(e){ kpiRecords=[]; } }
-function saveKpi(){ try{ localStorage.setItem(KPI_KEY,JSON.stringify(kpiRecords)); }catch(e){} }
+function saveKpi(){ try{ localStorage.setItem(KPI_KEY,JSON.stringify(kpiRecords)); }catch(e){} scheduleAutoSync(); }
 function loadScoreConfig(){ try{ var d=localStorage.getItem(SCORE_KEY); if(d) scoreConfig=JSON.parse(d); }catch(e){} }
 function saveScoreConfigData(){ try{ localStorage.setItem(SCORE_KEY,JSON.stringify(scoreConfig)); }catch(e){} }
+
+/* ---- KPI TEAM FIELDS ---- */
+function toggleKpiFields(){
+  var team=document.getElementById('kpi-team').value;
+  ['telesales','live','admin','office'].forEach(function(t){
+    document.getElementById('kpi-fields-'+t).style.display=team===t?'block':'none';
+  });
+  document.getElementById('kpi-submit-row').style.display=team?'flex':'none';
+}
 
 /* ---- KPI ADD ---- */
 function addKpi(){
   var name=document.getElementById('kpi-name').value.trim();
   var date=document.getElementById('kpi-date').value;
-  if(!name||!date){ showMsg('kpi-msg','กรุณากรอกชื่อและวันที่ค่ะ',false); return; }
-  var rec={
-    id:Date.now(), name:name, date:date,
-    sales:parseFloat(document.getElementById('kpi-sales').value)||0,
-    calls:parseInt(document.getElementById('kpi-calls').value)||0,
-    orders:parseInt(document.getElementById('kpi-orders').value)||0,
-    live:parseFloat(document.getElementById('kpi-live').value)||0,
+  var team=document.getElementById('kpi-team').value;
+  if(!name||!date||!team){ showMsg('kpi-msg','กรุณากรอกชื่อ วันที่ และเลือกทีมค่ะ',false); return; }
+
+  var rec={ id:Date.now(), name:name, date:date, team:team,
+    sales:0, calls:0, orders:0, live:0, liveOrders:0,
+    taskTotal:0, taskDone:0, taskPending:0, taskPass:0,
     note:document.getElementById('kpi-note').value.trim()
   };
-  // replace ถ้าวันเดียวกัน
-  kpiRecords=kpiRecords.filter(function(r){ return !(r.name===name&&r.date===date); });
+
+  if(team==='telesales'){
+    rec.sales=parseFloat(document.getElementById('kpi-sales').value)||0;
+    rec.calls=parseInt(document.getElementById('kpi-calls').value)||0;
+    rec.orders=parseInt(document.getElementById('kpi-orders').value)||0;
+  } else if(team==='live'){
+    rec.live=parseFloat(document.getElementById('kpi-live').value)||0;
+    rec.liveOrders=parseInt(document.getElementById('kpi-live-orders').value)||0;
+    rec.orders=rec.liveOrders;
+  } else if(team==='admin'){
+    rec.sales=parseFloat(document.getElementById('kpi-admin-sales').value)||0;
+    rec.orders=parseInt(document.getElementById('kpi-admin-orders').value)||0;
+  } else if(team==='office'){
+    rec.taskTotal=parseInt(document.getElementById('kpi-task-total').value)||0;
+    rec.taskDone=parseInt(document.getElementById('kpi-task-done').value)||0;
+    rec.taskPending=parseInt(document.getElementById('kpi-task-pending').value)||0;
+    rec.taskPass=parseFloat(document.getElementById('kpi-task-pass').value)||0;
+  }
+
+  // replace ถ้าวันเดียวกัน + ทีมเดียวกัน
+  kpiRecords=kpiRecords.filter(function(r){ return !(r.name===name&&r.date===date&&(r.team||'')===(team||'')); });
   kpiRecords.push(rec);
   saveKpi();
-  showMsg('kpi-msg','✓ บันทึก KPI ของ '+name+' วันที่ '+fmtThai(date)+' แล้วค่ะ',true);
+
+  var teamLabel={telesales:'Telesales',live:'Live',admin:'Admin',office:'Office/Content'}[team]||team;
+  showMsg('kpi-msg','✓ บันทึก KPI ของ '+name+' ('+teamLabel+') วันที่ '+fmtThai(date)+' แล้วค่ะ',true);
+
+  // clear fields
   document.getElementById('kpi-name').value='';
-  document.getElementById('kpi-sales').value='';
-  document.getElementById('kpi-calls').value='';
-  document.getElementById('kpi-orders').value='';
-  document.getElementById('kpi-live').value='';
   document.getElementById('kpi-note').value='';
+  ['kpi-sales','kpi-calls','kpi-orders','kpi-live','kpi-live-orders',
+   'kpi-admin-sales','kpi-admin-orders',
+   'kpi-task-total','kpi-task-done','kpi-task-pending','kpi-task-pass'].forEach(function(id){
+    var el=document.getElementById(id); if(el) el.value='';
+  });
   renderKpiRecent();
 }
 
 function renderKpiRecent(){
-  var last=kpiRecords.slice().sort(function(a,b){ return b.id-a.id; }).slice(0,5);
+  var last=kpiRecords.slice().sort(function(a,b){ return b.id-a.id; }).slice(0,8);
   var card=document.getElementById('kpi-recent-card');
   if(!last.length){ card.style.display='none'; return; }
   card.style.display='block';
-  var html='<table><thead><tr><th>วันที่</th><th>ชื่อ</th><th>ยอดขาย</th><th>สาย</th><th>Order</th><th>Live</th><th></th></tr></thead><tbody>';
+  var html='<table><thead><tr><th>วันที่</th><th>ชื่อ</th><th>ทีม</th><th>ยอดหลัก</th><th>รายละเอียด</th><th></th></tr></thead><tbody>';
   last.forEach(function(r){
-    html+='<tr><td>'+fmtThai(r.date)+'</td><td>'+r.name+'</td><td>'+fmtMoney(r.sales)+'</td><td>'+r.calls+'</td><td>'+r.orders+'</td><td>'+fmtMoney(r.live)+'</td>';
+    var team=r.team||'telesales';
+    var teamLabel={telesales:'Telesales',live:'Live',admin:'Admin',office:'Office'}[team]||team;
+    var main='', detail='';
+    if(team==='telesales'){ main=fmtMoney(r.sales); detail='สาย '+r.calls+' | Order '+r.orders; }
+    else if(team==='live'){ main=fmtMoney(r.live); detail='Order '+r.orders; }
+    else if(team==='admin'){ main=fmtMoney(r.sales); detail='Order '+r.orders; }
+    else if(team==='office'){ main=r.taskDone+'/'+r.taskTotal+' งาน'; detail='ค้าง '+r.taskPending+' | ผ่าน '+r.taskPass+'%'; }
+    html+='<tr><td>'+fmtThai(r.date)+'</td><td>'+r.name+'</td>';
+    html+='<td><span class="badge badge-team-'+team+'">'+teamLabel+'</span></td>';
+    html+='<td style="font-weight:600;color:var(--green);">'+main+'</td>';
+    html+='<td style="font-size:12px;color:var(--text2);">'+detail+'</td>';
     html+='<td><button class="btn btn-sm btn-danger" onclick="delKpi('+r.id+')">ลบ</button></td></tr>';
   });
   html+='</tbody></table>';
@@ -2420,28 +2554,37 @@ function renderKpiReport(){
       // ตารางรายคน
       var byName={};
       filtered.forEach(function(r){
-        if(!byName[r.name]) byName[r.name]={sales:0,calls:0,orders:0,live:0,days:0};
-        byName[r.name].sales+=r.sales;
-        byName[r.name].calls+=r.calls;
-        byName[r.name].orders+=r.orders;
-        byName[r.name].live+=r.live;
+        var team=r.team||'telesales';
+        if(!byName[r.name]) byName[r.name]={team:team,sales:0,calls:0,orders:0,live:0,taskTotal:0,taskDone:0,taskPending:0,taskPass:0,passCount:0,days:0};
+        byName[r.name].sales+=(r.sales||0);
+        byName[r.name].calls+=(r.calls||0);
+        byName[r.name].orders+=(r.orders||0)+(r.liveOrders||0);
+        byName[r.name].live+=(r.live||0);
+        byName[r.name].taskTotal+=(r.taskTotal||0);
+        byName[r.name].taskDone+=(r.taskDone||0);
+        byName[r.name].taskPending+=(r.taskPending||0);
+        if(r.taskPass){ byName[r.name].taskPass+=(r.taskPass||0); byName[r.name].passCount++; }
         byName[r.name].days++;
       });
 
-      // เรียงตามยอดขายมากสุด
-      var sorted=Object.keys(byName).sort(function(a,b){ return byName[b].sales-byName[a].sales; });
-      html+='<div class="table-wrap"><table><thead><tr><th>ชื่อ</th><th>ยอดขาย</th><th>สาย</th><th>Order</th><th>Live</th><th>วันที่กรอก</th></tr></thead><tbody>';
-      sorted.forEach(function(nm, idx){
+      var sorted=Object.keys(byName).sort(function(a,b){
+        var da=byName[a],db=byName[b];
+        return (db.sales+db.live+db.taskDone)-(da.sales+da.live+da.taskDone);
+      });
+      html+='<div class="table-wrap"><table><thead><tr><th>#</th><th>ชื่อ</th><th>ทีม</th><th>ยอดหลัก</th><th>รายละเอียด</th><th>วัน</th></tr></thead><tbody>';
+      sorted.forEach(function(nm,idx){
         var d=byName[nm];
+        var team=d.team||'telesales';
+        var tl={telesales:'Telesales',live:'Live',admin:'Admin',office:'Office'}[team]||team;
         var medal=idx===0?'🥇 ':idx===1?'🥈 ':idx===2?'🥉 ':'';
-        html+='<tr>';
-        html+='<td style="font-weight:500">'+medal+nm+'</td>';
-        html+='<td style="font-weight:600;color:var(--green);">'+fmtMoney(d.sales)+'</td>';
-        html+='<td>'+d.calls+'</td>';
-        html+='<td>'+d.orders+'</td>';
-        html+='<td>'+fmtMoney(d.live)+'</td>';
-        html+='<td style="color:var(--text3);">'+d.days+' วัน</td>';
-        html+='</tr>';
+        var main='',detail='';
+        if(team==='telesales'||team==='admin'){ main='<span style="color:var(--green);font-weight:600;">'+fmtMoney(d.sales)+'</span>'; detail='สาย '+d.calls+' | Order '+d.orders; }
+        else if(team==='live'){ main='<span style="color:var(--green);font-weight:600;">'+fmtMoney(d.live)+'</span>'; detail='Order '+d.orders; }
+        else{ main='<span style="color:var(--biz-t);font-weight:600;">'+d.taskDone+'/'+d.taskTotal+'</span>'; detail='ค้าง '+d.taskPending+' | ผ่าน '+(d.passCount?Math.round(d.taskPass/d.passCount):0)+'%'; }
+        html+='<tr><td>'+medal+(idx+1)+'</td><td style="font-weight:500;">'+nm+'</td>';
+        html+='<td><span class="badge badge-team-'+team+'">'+tl+'</span></td>';
+        html+='<td>'+main+'</td><td style="font-size:12px;color:var(--text2);">'+detail+'</td>';
+        html+='<td style="color:var(--text3);">'+d.days+'</td></tr>';
       });
       html+='</tbody></table></div>';
       html+='</div>';
