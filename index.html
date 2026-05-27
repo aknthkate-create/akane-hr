@@ -1273,9 +1273,9 @@ function scheduleAutoSync(){
   setSyncStatus('⏳ รอ sync...','');
   _autoSyncTimer=setTimeout(function(){
     _autoSyncTimer=null;
-    if(_isSyncing){ scheduleAutoSync(); return; } // ถ้า sync อยู่ให้รอก่อน
+    if(_isSyncing){ scheduleAutoSync(); return; }
     autoSyncAllSheets();
-  }, 4000);
+  }, 2000);
 }
 
 function autoSyncAllSheets(){
@@ -1411,7 +1411,6 @@ function addRecord(){
   records.push({ id:Date.now(), name:name, date:date, type:type, days:days, lateCount:lateCount });
   saveLeave(); updateDatalist(); updateCounter();
   var newRec=records[records.length-1];
-  apiAdd('leave', newRec);
   var qty=isLate?lateCount+' ครั้ง':isResign?'':days+' วัน';
   showMsg('add-msg','✓ บันทึกแล้ว — '+name+' '+typeThai(type)+(qty?' '+qty:'')+' ('+fmtThai(date)+')',true);
   document.getElementById('in-name').value='';
@@ -1466,7 +1465,6 @@ function renderList(){
 }
 function delRec(id,from){
   if(!confirm('ลบรายการนี้?')) return;
-  apiDelete('leave', id);
   records=records.filter(function(r){ return r.id!==id; });
   saveLeave(); updateCounter(); updateDatalist();
   if(from==='recent') renderRecent();
@@ -1486,7 +1484,6 @@ function addPlan(){
   if(dup){ showMsg('plan-msg','มี '+name+' ในแพลนวันนี้แล้วค่ะ',false); return; }
   plans.push({ id:Date.now(), name:name, date:today, topic:topic, channel:channel, note:note, done:false });
   savePlan(); updateDatalist(); updateCounter();
-  apiAdd('plans', plans[plans.length-1]);
   showMsg('plan-msg','✓ เพิ่ม '+name+' ในแพลนวันนี้แล้วค่ะ',true);
   document.getElementById('pl-name').value='';
   document.getElementById('pl-note').value='';
@@ -1575,19 +1572,16 @@ function confirmDone(){
   // mark done
   p.done=true; p.summary=summary; p.followup=followup;
   savePlan();
-  apiUpdate('plans', p.id, p);
   // auto-save to talks
   var newTalk={ id:Date.now(), name:p.name, date:todayISO(), topic:p.topic, channel:p.channel, summary:summary, followup:followup };
   talks.push(newTalk);
   saveTalk();
-  apiAdd('talks', newTalk);
   closeModal();
   updateDatalist(); updateCounter(); renderPlan();
 }
 
 function delPlan(id){
   if(!confirm('ลบรายการแพลนนี้?')) return;
-  apiDelete('plans', id);
   plans=plans.filter(function(p){ return p.id!==id; });
   savePlan(); updateCounter(); renderPlan();
 }
@@ -1603,7 +1597,6 @@ function addTalk(){
   if(!name||!date||!summary){ showMsg('talk-msg','กรุณากรอกชื่อ วันที่ และสรุปการคุยค่ะ',false); return; }
   talks.push({ id:Date.now(), name:name, date:date, topic:topic, channel:channel, summary:summary, followup:followup });
   saveTalk(); updateDatalist(); updateCounter();
-  apiAdd('talks', talks[talks.length-1]);
   showMsg('talk-msg','✓ บันทึกแล้ว — '+name+' ('+topicThai(topic)+' / '+channelThai(channel)+') '+fmtThai(date),true);
   document.getElementById('tk-name').value='';
   document.getElementById('tk-summary').value='';
@@ -1651,7 +1644,6 @@ function renderTalkList(){
 }
 function delTalk(id){
   if(!confirm('ลบบันทึกนี้?')) return;
-  apiDelete('talks', id);
   talks=talks.filter(function(t){ return t.id!==id; });
   saveTalk(); updateCounter(); renderTalkList();
 }
@@ -1806,7 +1798,6 @@ function addAnnounce(){
   var links=linksRaw?linksRaw.split(',').map(function(s){ return driveToEmbed(s.trim()); }).filter(Boolean):[];
   announces.push({ id:Date.now(), team:team, channel:channel, date:date, topic:topic, status:status, note:note, imgs:links });
   saveAnnounce(); updateCounter();
-  apiAdd('announce', announces[announces.length-1]);
   var statusLabel=status==='all'?'รับทราบทุกคน ✓':'บางคนยังไม่รับทราบ';
   showMsg('an-msg','✓ บันทึกแล้ว — แจ้ง'+teamThai(team)+' ผ่าน'+channelThai(channel)+' ('+statusLabel+')'+(links.length?' 🔗 '+links.length+' รูป':''),true);
   document.getElementById('an-topic').value='';
@@ -1885,7 +1876,6 @@ function renderAnnounceList(){
 
 function delAnnounce(id){
   if(!confirm('ลบบันทึกนี้?')) return;
-  apiDelete('announce', id);
   announces=announces.filter(function(a){ return a.id!==id; });
   saveAnnounce(); updateCounter(); renderAnnounceList();
 }
@@ -1894,7 +1884,6 @@ function toggleAnnounceStatus(id){
   var a=announces.find(function(x){ return x.id===id; });
   if(!a) return;
   a.status=a.status==='all'?'partial':'all';
-  apiUpdate('announce', id, a);
   saveAnnounce(); renderAnnounceList();
 }
 
