@@ -1039,12 +1039,12 @@ function init(){
   if(_gsUrl){
     var totalLocal=records.length+talks.length+plans.length+announces.length+kpiRecords.length+employees.length;
     if(totalLocal>0){
-      // มีข้อมูลในเครื่อง → push ขึ้น Sheets ก่อน แล้วค่อย pull
+      // มีข้อมูลในเครื่อง → push ขึ้น Sheets เงียบๆ ไม่ดึงลงมา
+      setSyncStatus('⏳ กำลัง sync...','');
       autoSyncAllSheets();
-    } else {
-      // ไม่มีข้อมูลในเครื่อง → pull ลงมาจาก Sheets
-      syncAll(true);
     }
+    // ไม่มีข้อมูล → ไม่ auto pull เพื่อป้องกันทับข้อมูล
+    // ให้กด ⬇ ดึงข้อมูลจาก Sheets เองค่ะ
   }
 }
 
@@ -1191,6 +1191,13 @@ function gsGet(params, cb){
 /* ---- SYNC ---- */
 function syncAll(silent){
   if(!_gsUrl){ if(!silent) alert('กรุณากรอก Apps Script URL ก่อนค่ะ'); return; }
+
+  // ถ้ากดเองและมีข้อมูลในเครื่อง → เตือนก่อนเสมอ
+  var totalLocal=records.length+talks.length+plans.length+announces.length+kpiRecords.length+employees.length;
+  if(!silent && totalLocal>0){
+    if(!confirm('⚠️ การดึงข้อมูลจาก Sheets จะทับข้อมูลในเครื่องทั้งหมด\n\nแน่ใจไหมคะ?\n\nกด OK = ดึงจาก Sheets (ทับข้อมูลในเครื่อง)\nกด Cancel = ยกเลิก')) return;
+  }
+
   setSyncStatus('กำลังดึงข้อมูล...','');
   gsGet({action:'all'}, function(res,err){
     if(err||!res||!res.ok){
@@ -1200,23 +1207,17 @@ function syncAll(silent){
     }
     var d=res.data;
     var totalFromSheets=(d.leave||[]).length+(d.talks||[]).length+(d.plans||[]).length+(d.announce||[]).length+(d.kpi||[]).length+(d.emp||[]).length;
-    var totalLocal=records.length+talks.length+plans.length+announces.length+kpiRecords.length+employees.length;
 
-    // ถ้า Sheets ว่างทั้งหมด แต่ local มีข้อมูล — ไม่ทับ
     if(totalFromSheets===0 && totalLocal>0){
-      if(!silent){
-        if(!confirm('Google Sheets ไม่มีข้อมูลค่ะ\n\nกด OK = ดึงจาก Sheets (ล้างข้อมูลในเครื่อง)\nกด Cancel = ยกเลิก')) return;
-      } else {
-        setSyncStatus('⚠ Sheets ว่าง ใช้ข้อมูลในเครื่อง',false);
-        return;
-      }
+      setSyncStatus('⚠ Sheets ว่าง ข้อมูลในเครื่องยังอยู่',false);
+      if(!silent) alert('Google Sheets ไม่มีข้อมูลค่ะ — ข้อมูลในเครื่องยังอยู่ครบ\n\nลอง ⬆ อัปโหลดขึ้น Sheets ก่อนนะคะ');
+      return;
     }
 
     // เก็บรูปจาก announces เดิมไว้ก่อน
     var imgCache={};
     announces.forEach(function(a){ if(a.imgs&&a.imgs.length) imgCache[a.id]=a.imgs; });
 
-    // แต่ละ sheet — ดึงเฉพาะที่ Sheets มีข้อมูล ถ้าว่างให้คง local ไว้
     if(d.leave&&d.leave.length)    records=d.leave.map(coerceLeave);
     if(d.talks&&d.talks.length)    talks=d.talks.map(coerceTalk);
     if(d.plans&&d.plans.length)    plans=d.plans.map(coercePlan);
@@ -1236,7 +1237,7 @@ function syncAll(silent){
     localStorage.setItem(EMP_KEY,JSON.stringify(employees));
     updateDatalist(); updateCounter(); renderRecent();
     var now=new Date();
-    setSyncStatus('✓ Sync '+pad(now.getHours())+':'+pad(now.getMinutes()),true);
+    setSyncStatus('✓ ดึงข้อมูลสำเร็จ '+pad(now.getHours())+':'+pad(now.getMinutes()),true);
     if(!silent) alert('ดึงข้อมูลสำเร็จค่ะ ('+totalFromSheets+' รายการ)');
   });
 }
