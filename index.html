@@ -171,6 +171,24 @@ tr:hover td{background:var(--accent-light);}
 .badge-team-admin{background:#FFF3E0;color:#7C4800;}
 .badge-team-hr{background:#F1F0FF;color:#3D2D9C;}
 .badge-team-all{background:var(--surface2);color:var(--text2);}
+.badge-team-office{background:#FEF9E7;color:#7D6608;}
+.badge-team-other{background:var(--surface2);color:var(--text2);}
+
+/* ATTENDANCE LEVEL */
+.att-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 18px;margin-bottom:10px;}
+.att-card-top{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;margin-bottom:12px;}
+.att-name{font-weight:600;font-size:14px;}
+.level-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;}
+.level-0{background:var(--surface2);color:var(--text3);}
+.level-1{background:#FFFBEB;color:#92400E;}
+.level-2{background:#FFF3E0;color:#7C2D00;}
+.level-3{background:#FEF0F0;color:#7C1A1A;}
+.level-4{background:#FDF0F0;color:#991B1B;}
+.level-5{background:#FEE2E2;color:#DC2626;}
+.pattern-chip{display:inline-block;background:#FEF3C7;color:#92400E;padding:2px 8px;border-radius:6px;font-size:11px;margin:2px;}
+.mon-bar{background:var(--surface2);border-radius:20px;height:6px;margin-top:6px;}
+.mon-bar-fill{height:6px;border-radius:20px;background:#DC2626;transition:width .3s;}
+.override-select{padding:4px 8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);font-family:var(--font);background:var(--surface);color:var(--text);}
 
 ::-webkit-scrollbar{width:5px;height:5px;}
 ::-webkit-scrollbar-track{background:transparent;}
@@ -297,6 +315,9 @@ tr:hover td{background:var(--accent-light);}
     <button class="nav-item" onclick="switchPage('kpireport')"><span class="nav-icon">📈</span>รายงาน KPI</button>
     <button class="nav-item" onclick="switchPage('risk')"><span class="nav-icon">🚨</span>Risk Dashboard</button>
     <button class="nav-item" onclick="switchPage('scoreconfig')"><span class="nav-icon">⚖️</span>ตั้งค่า Score</button>
+    <div class="nav-section" style="margin-top:8px">Attendance</div>
+    <button class="nav-item" onclick="switchPage('attdash')"><span class="nav-icon">🎯</span>Attendance Dashboard</button>
+    <button class="nav-item" onclick="switchPage('attconfig')"><span class="nav-icon">🔧</span>ตั้งค่า Level</button>
   </nav>
   <div class="sidebar-footer" id="db-count">—</div>
 </aside>
@@ -313,14 +334,42 @@ tr:hover td{background:var(--accent-light);}
         <div class="field"><label>วันที่</label><input type="date" id="in-date"></div>
       </div>
       <div class="form-row">
-        <div class="field"><label>ประเภท</label>
+        <div class="field">
+          <label>ประเภท</label>
           <select id="in-type" onchange="toggleDaysCnt()">
             <option value="sick">ลาป่วย</option><option value="biz">ลากิจ</option>
-            <option value="vac">ลาพักร้อน</option><option value="absent">ขาดงาน</option><option value="late">มาสาย</option><option value="resign">ลาออก</option>
+            <option value="vac">ลาพักร้อน</option><option value="absent">ขาดงาน</option>
+            <option value="late">มาสาย</option><option value="resign">ลาออก</option>
           </select>
         </div>
         <div class="field" id="f-days"><label>จำนวนวัน</label><input type="number" id="in-days" value="1" min="0.5" step="0.5" style="max-width:100px"></div>
         <div class="field" id="f-late" style="display:none"><label>จำนวนครั้ง</label><input type="number" id="in-late" value="1" min="1" step="1" style="max-width:100px"></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>วันที่แจ้งลา</label><input type="date" id="in-notify-date" title="วันที่พนักงานแจ้งลา"></div>
+        <div class="field"><label>เหตุผล</label><input type="text" id="in-reason" placeholder="ป่วย / ธุระ / อื่นๆ"></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>มีใบรับรองแพทย์</label>
+          <select id="in-medcert">
+            <option value="">ไม่ระบุ</option>
+            <option value="yes">มี ✓</option>
+            <option value="no">ไม่มี ✗</option>
+          </select>
+        </div>
+        <div class="field" id="f-medcert-link" style="display:none">
+          <label>Link รูปใบแพทย์ (Google Drive)</label>
+          <input type="text" id="in-medcert-link" placeholder="https://drive.google.com/...">
+        </div>
+        <div class="field"><label>กระทบทีม</label>
+          <select id="in-impact">
+            <option value="">ไม่ระบุ</option>
+            <option value="yes">กระทบ</option>
+            <option value="no">ไม่กระทบ</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
         <button class="btn btn-primary" onclick="addRecord()">+ บันทึก</button>
       </div>
       <div class="msg-ok" id="add-msg"></div>
@@ -843,6 +892,57 @@ tr:hover td{background:var(--accent-light);}
     </div>
   </div>
 
+  <!-- PAGE: Attendance Dashboard -->
+  <div id="page-attdash" class="page">
+    <div class="page-header"><div class="page-title">Attendance Dashboard</div><div class="page-desc">ภาพรวม Level การลา Pattern และ Monitoring Period</div></div>
+    <div class="filter-bar">
+      <div class="field"><label>ช่วงเวลาวิเคราะห์</label>
+        <select id="att-range" onchange="renderAttDash()">
+          <option value="1">1 เดือนล่าสุด</option>
+          <option value="3" selected>3 เดือนล่าสุด</option>
+          <option value="6">6 เดือนล่าสุด</option>
+        </select>
+      </div>
+      <button class="btn btn-sm btn-primary" onclick="renderAttDash()">วิเคราะห์</button>
+    </div>
+    <div id="attdash-summary" class="kpi-grid" style="display:none;margin-bottom:16px;"></div>
+    <div id="attdash-body"></div>
+  </div>
+
+  <!-- PAGE: ตั้งค่า Level -->
+  <div id="page-attconfig" class="page">
+    <div class="page-header"><div class="page-title">ตั้งค่า Attendance Level</div><div class="page-desc">กำหนด threshold ของแต่ละ Level ได้เองค่ะ</div></div>
+    <div class="card">
+      <div class="card-title">Threshold แต่ละ Level (ต่อเดือน)</div>
+      <div class="form-row">
+        <div class="field"><label>🟡 Level 1 — ลา ≥ (ครั้ง)</label><input type="number" id="al-l1-count" value="3" min="1"></div>
+        <div class="field"><label>🟠 Level 2 — ลา ≥ (ครั้ง)</label><input type="number" id="al-l2-count" value="5" min="1"></div>
+        <div class="field"><label>🟠 Level 2 — Pattern จันทร์/ศุกร์ ≥ (ครั้ง)</label><input type="number" id="al-l2-pattern" value="3" min="1"></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>🔴 Level 3 — เรียกคุย ≥ (ครั้ง) + ยังลาต่อ</label><input type="number" id="al-l3-talk" value="1" min="1"></div>
+        <div class="field"><label>🔴 Level 4 — เรียกคุย ≥ (ครั้ง)</label><input type="number" id="al-l4-talk" value="2" min="1"></div>
+        <div class="field"><label>⛔ Level 5 — เรียกคุย ≥ (ครั้ง) + KPI ตก</label><input type="number" id="al-l5-talk" value="3" min="1"></div>
+      </div>
+      <div class="card-title" style="margin-top:16px">Monitoring Period</div>
+      <div class="form-row">
+        <div class="field"><label>Monitoring ระยะสั้น (วัน)</label><input type="number" id="al-mon-short" value="30" min="1"></div>
+        <div class="field"><label>Monitoring ระยะยาว (วัน)</label><input type="number" id="al-mon-long" value="60" min="1"></div>
+        <div class="field"><label>Trigger monitoring เมื่อ Level ≥</label>
+          <select id="al-mon-trigger">
+            <option value="2">Level 2</option>
+            <option value="3" selected>Level 3</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row" style="margin-top:8px">
+        <button class="btn btn-primary" onclick="saveAttConfig()">💾 บันทึกการตั้งค่า</button>
+        <button class="btn" onclick="resetAttConfig()">↺ รีเซ็ต</button>
+      </div>
+      <div class="msg-ok" id="al-msg"></div>
+    </div>
+  </div>
+
 </main>
 </div>
 
@@ -921,6 +1021,9 @@ function init(){
   loadKpi();
   loadScoreConfig();
   loadScoreConfigToForm();
+  loadAttConfig();
+  loadAttOverrides();
+  loadAttConfigToForm();
   document.getElementById('kpi-date').value=fmtISO(new Date());
   // ตั้ง default เดือนปัจจุบันใน Risk Dashboard
   var today=new Date();
@@ -1272,7 +1375,16 @@ function saveAnnounce(){
   scheduleAutoSync();
 }
 
-/* ---- AUTO SYNC (debounce 4 วิ) ---- */
+/* ---- FORCE SYNC (ใช้ตอนลบ — cancel timer เก่าแล้ว sync ทันที) ---- */
+function forceSyncNow(){
+  if(_autoSyncTimer){ clearTimeout(_autoSyncTimer); _autoSyncTimer=null; }
+  if(_isSyncing){
+    // รอให้ sync เสร็จก่อนแล้วค่อย sync ใหม่
+    setTimeout(forceSyncNow, 500);
+    return;
+  }
+  autoSyncAllSheets();
+}
 var _autoSyncTimer=null;
 var _isSyncing=false;
 
@@ -1377,7 +1489,7 @@ function switchPage(p){
   document.querySelectorAll('.nav-item').forEach(function(el){ el.classList.remove('active'); });
   document.querySelectorAll('.bnav-item').forEach(function(el){ el.classList.remove('active'); });
   document.getElementById('page-'+p).classList.add('active');
-  var idx={'add':0,'list':1,'report':2,'summary':3,'plan':4,'talk':5,'talklist':6,'announce':7,'announcelist':8,'settings':9,'emplist':10,'empadd':11,'kpi':12,'kpireport':13,'risk':14,'scoreconfig':15}[p];
+  var idx={'add':0,'list':1,'report':2,'summary':3,'plan':4,'talk':5,'talklist':6,'announce':7,'announcelist':8,'settings':9,'emplist':10,'empadd':11,'kpi':12,'kpireport':13,'risk':14,'scoreconfig':15,'attdash':16,'attconfig':17}[p];
   if(idx!==undefined) document.querySelectorAll('.nav-item')[idx].classList.add('active');
   var bnId=_bnavMap[p];
   if(bnId){ var bn=document.getElementById(bnId); if(bn) bn.classList.add('active'); }
@@ -1391,6 +1503,7 @@ function switchPage(p){
   if(p==='kpireport') renderKpiReport();
   if(p==='risk') renderRisk();
   if(p==='kpi') renderKpiRecent();
+  if(p==='attdash') renderAttDash();
   window.scrollTo(0,0);
 }
 
@@ -1417,7 +1530,15 @@ function addRecord(){
   var days=(isLate||isResign)?0:parseFloat(document.getElementById('in-days').value)||1;
   var lateCount=isLate?parseInt(document.getElementById('in-late').value)||1:0;
   if(!name||!date){ showMsg('add-msg','กรุณากรอกชื่อและวันที่ค่ะ',false); return; }
-  records.push({ id:Date.now(), name:name, date:date, type:type, days:days, lateCount:lateCount });
+  var notifyDate=document.getElementById('in-notify-date').value||'';
+  var reason=document.getElementById('in-reason').value.trim();
+  var medcert=document.getElementById('in-medcert').value;
+  var medcertLink=document.getElementById('in-medcert-link').value.trim();
+  var impact=document.getElementById('in-impact').value;
+  var dayOfWeek=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัส','ศุกร์','เสาร์'][new Date(date).getDay()];
+  records.push({ id:Date.now(), name:name, date:date, type:type, days:days, lateCount:lateCount,
+    dayOfWeek:dayOfWeek, notifyDate:notifyDate, reason:reason,
+    medcert:medcert, medcertLink:medcertLink, impact:impact });
   saveLeave(); updateDatalist(); updateCounter();
   var newRec=records[records.length-1];
   var qty=isLate?lateCount+' ครั้ง':isResign?'':days+' วัน';
@@ -1425,6 +1546,12 @@ function addRecord(){
   document.getElementById('in-name').value='';
   document.getElementById('in-days').value='1';
   document.getElementById('in-late').value='1';
+  document.getElementById('in-notify-date').value='';
+  document.getElementById('in-reason').value='';
+  document.getElementById('in-medcert').value='';
+  document.getElementById('in-medcert-link').value='';
+  document.getElementById('in-impact').value='';
+  document.getElementById('f-medcert-link').style.display='none';
   renderRecent();
 }
 
@@ -1474,10 +1601,12 @@ function renderList(){
 }
 function delRec(id,from){
   if(!confirm('ลบรายการนี้?')) return;
-  records=records.filter(function(r){ return r.id!==id; });
-  saveLeave(); updateCounter(); updateDatalist();
+  records=records.filter(function(r){ return String(r.id)!==String(id); });
+  localStorage.setItem(DB_KEY,JSON.stringify(records));
+  updateCounter(); updateDatalist();
   if(from==='recent') renderRecent();
   if(from==='list') renderList();
+  forceSyncNow();
 }
 
 /* ---- PLAN ---- */
@@ -1591,8 +1720,10 @@ function confirmDone(){
 
 function delPlan(id){
   if(!confirm('ลบรายการแพลนนี้?')) return;
-  plans=plans.filter(function(p){ return p.id!==id; });
-  savePlan(); updateCounter(); renderPlan();
+  plans=plans.filter(function(p){ return String(p.id)!==String(id); });
+  localStorage.setItem(PLAN_KEY,JSON.stringify(plans));
+  updateCounter(); renderPlan();
+  forceSyncNow();
 }
 
 /* ---- ADD TALK (manual) ---- */
@@ -1653,8 +1784,10 @@ function renderTalkList(){
 }
 function delTalk(id){
   if(!confirm('ลบบันทึกนี้?')) return;
-  talks=talks.filter(function(t){ return t.id!==id; });
-  saveTalk(); updateCounter(); renderTalkList();
+  talks=talks.filter(function(t){ return String(t.id)!==String(id); });
+  localStorage.setItem(TALK_KEY,JSON.stringify(talks));
+  updateCounter(); renderTalkList();
+  forceSyncNow();
 }
 
 /* ---- DATE RANGE ---- */
@@ -1885,8 +2018,10 @@ function renderAnnounceList(){
 
 function delAnnounce(id){
   if(!confirm('ลบบันทึกนี้?')) return;
-  announces=announces.filter(function(a){ return a.id!==id; });
-  saveAnnounce(); updateCounter(); renderAnnounceList();
+  announces=announces.filter(function(a){ return String(a.id)!==String(id); });
+  localStorage.setItem(ANN_KEY,JSON.stringify(announces));
+  updateCounter(); renderAnnounceList();
+  forceSyncNow();
 }
 
 function toggleAnnounceStatus(id){
@@ -2383,6 +2518,240 @@ function delRepayment(empId, advId, repId){
   saveEmps(); viewEmp(empId);
 }
 
+/* ---- MEDCERT TOGGLE ---- */
+document.addEventListener('change', function(e){
+  if(e.target && e.target.id==='in-medcert'){
+    document.getElementById('f-medcert-link').style.display = e.target.value==='yes'?'block':'none';
+  }
+});
+
+/* ---- ATTENDANCE CONFIG ---- */
+var ATT_CONFIG_KEY='akane_att_config_v1';
+var attConfig={
+  l1Count:3, l2Count:5, l2Pattern:3,
+  l3Talk:1, l4Talk:2, l5Talk:3,
+  monShort:30, monLong:60, monTrigger:3
+};
+
+function loadAttConfig(){
+  try{ var d=localStorage.getItem(ATT_CONFIG_KEY); if(d) attConfig=JSON.parse(d); }catch(e){}
+}
+function saveAttConfigData(){
+  try{ localStorage.setItem(ATT_CONFIG_KEY,JSON.stringify(attConfig)); }catch(e){}
+}
+function saveAttConfig(){
+  attConfig={
+    l1Count:parseInt(document.getElementById('al-l1-count').value)||3,
+    l2Count:parseInt(document.getElementById('al-l2-count').value)||5,
+    l2Pattern:parseInt(document.getElementById('al-l2-pattern').value)||3,
+    l3Talk:parseInt(document.getElementById('al-l3-talk').value)||1,
+    l4Talk:parseInt(document.getElementById('al-l4-talk').value)||2,
+    l5Talk:parseInt(document.getElementById('al-l5-talk').value)||3,
+    monShort:parseInt(document.getElementById('al-mon-short').value)||30,
+    monLong:parseInt(document.getElementById('al-mon-long').value)||60,
+    monTrigger:parseInt(document.getElementById('al-mon-trigger').value)||3
+  };
+  saveAttConfigData();
+  showMsg('al-msg','✓ บันทึกแล้วค่ะ',true);
+}
+function resetAttConfig(){
+  attConfig={l1Count:3,l2Count:5,l2Pattern:3,l3Talk:1,l4Talk:2,l5Talk:3,monShort:30,monLong:60,monTrigger:3};
+  saveAttConfigData(); loadAttConfigToForm();
+  showMsg('al-msg','✓ รีเซ็ตแล้วค่ะ',true);
+}
+function loadAttConfigToForm(){
+  var f=function(id,v){ var el=document.getElementById(id); if(el) el.value=v; };
+  f('al-l1-count',attConfig.l1Count); f('al-l2-count',attConfig.l2Count);
+  f('al-l2-pattern',attConfig.l2Pattern); f('al-l3-talk',attConfig.l3Talk);
+  f('al-l4-talk',attConfig.l4Talk); f('al-l5-talk',attConfig.l5Talk);
+  f('al-mon-short',attConfig.monShort); f('al-mon-long',attConfig.monLong);
+  f('al-mon-trigger',attConfig.monTrigger);
+}
+
+/* ---- ATTENDANCE LEVEL CALC ---- */
+var ATT_OVERRIDE_KEY='akane_att_override_v1';
+var attOverrides={};
+function loadAttOverrides(){ try{ var d=localStorage.getItem(ATT_OVERRIDE_KEY); if(d) attOverrides=JSON.parse(d); }catch(e){} }
+function saveAttOverrides(){ try{ localStorage.setItem(ATT_OVERRIDE_KEY,JSON.stringify(attOverrides)); }catch(e){} }
+
+function getDayOfWeek(dateStr){
+  if(!dateStr) return -1;
+  var d=new Date(dateStr); return d.getDay(); // 0=อา, 1=จ, 5=ศ
+}
+
+function calcAttLevel(name, fromDate, toDate){
+  var n=name.toLowerCase();
+  var empLeaves=records.filter(function(r){
+    return (r.name||'').toLowerCase()===n && r.date>=fromDate && r.date<=toDate && r.type!=='late' && r.type!=='resign';
+  });
+  var empTalks=talks.filter(function(t){
+    return (t.name||'').toLowerCase()===n && t.date>=fromDate && t.date<=toDate;
+  });
+
+  var leaveCount=empLeaves.length;
+  var talkCount=empTalks.length;
+
+  // pattern วันจันทร์/ศุกร์
+  var monFriCount=empLeaves.filter(function(r){
+    var d=getDayOfWeek(r.date); return d===1||d===5;
+  }).length;
+
+  // KPI ตก
+  var kpiLow=false;
+  if(attConfig.monTrigger>=5 && scoreConfig.targetSales>0){
+    var months3=getMonthList(3);
+    var lowMonths=months3.filter(function(m){
+      var kpiMonth=kpiRecords.filter(function(k){ return (k.name||'').toLowerCase()===n && k.date>=m.from && k.date<=m.to; });
+      var total=kpiMonth.reduce(function(s,k){ return s+(k.sales||0); },0);
+      return kpiMonth.length>0 && total<scoreConfig.targetSales;
+    });
+    kpiLow=lowMonths.length>=2;
+  }
+
+  // คำนวณ Level
+  var sysLevel=0;
+  if(leaveCount>=attConfig.l1Count) sysLevel=1;
+  if(leaveCount>=attConfig.l2Count || monFriCount>=attConfig.l2Pattern) sysLevel=2;
+  if(talkCount>=attConfig.l3Talk && leaveCount>=attConfig.l1Count) sysLevel=3;
+  if(talkCount>=attConfig.l4Talk) sysLevel=4;
+  if(talkCount>=attConfig.l5Talk && kpiLow) sysLevel=5;
+
+  return {
+    sysLevel:sysLevel,
+    leaveCount:leaveCount,
+    talkCount:talkCount,
+    monFriCount:monFriCount,
+    kpiLow:kpiLow,
+    leaves:empLeaves,
+    talks:empTalks
+  };
+}
+
+function getEffectiveLevel(name, sysLevel){
+  return attOverrides[name.toLowerCase()]!==undefined ? attOverrides[name.toLowerCase()] : sysLevel;
+}
+
+function getLevelLabel(l){
+  var labels=['🟢 ปกติ','🟡 Level 1 สังเกต','🟠 Level 2 กังวล','🔴 Level 3 ติดตาม','🔴 Level 4 คำเตือน','⛔ Level 5 วิกฤต'];
+  return labels[l]||'—';
+}
+
+function getMonitoringStatus(name, level, fromDate){
+  if(level<attConfig.monTrigger) return null;
+  // หาวันแรกที่ trigger
+  var n=name.toLowerCase();
+  var talks3=talks.filter(function(t){ return (t.name||'').toLowerCase()===n; }).sort(function(a,b){ return a.date.localeCompare(b.date); });
+  if(!talks3.length) return null;
+  var startDate=talks3[0].date;
+  var start=new Date(startDate);
+  var now=new Date();
+  var elapsed=Math.floor((now-start)/(1000*60*60*24));
+  var target=level>=4?attConfig.monLong:attConfig.monShort;
+  var pct=Math.min(100,Math.round(elapsed/target*100));
+  var remaining=Math.max(0,target-elapsed);
+  return { startDate:startDate, elapsed:elapsed, target:target, pct:pct, remaining:remaining };
+}
+
+/* ---- RENDER ATTENDANCE DASHBOARD ---- */
+function renderAttDash(){
+  var nMonths=parseInt(document.getElementById('att-range').value)||3;
+  var months=getMonthList(nMonths);
+  var from=months[months.length-1].from;
+  var to=months[0].to;
+
+  var names=getNames();
+  var body=document.getElementById('attdash-body');
+  var sumEl=document.getElementById('attdash-summary');
+
+  if(!names.length){ body.innerHTML='<div class="empty">ยังไม่มีข้อมูลพนักงานค่ะ</div>'; sumEl.style.display='none'; return; }
+
+  var results=names.map(function(nm){
+    var att=calcAttLevel(nm,from,to);
+    var eff=getEffectiveLevel(nm,att.sysLevel);
+    return Object.assign({name:nm,effLevel:eff},att);
+  }).sort(function(a,b){ return b.effLevel-a.effLevel||b.leaveCount-a.leaveCount; });
+
+  // summary KPIs
+  var l0=results.filter(function(r){ return r.effLevel===0; }).length;
+  var l12=results.filter(function(r){ return r.effLevel===1||r.effLevel===2; }).length;
+  var l34=results.filter(function(r){ return r.effLevel===3||r.effLevel===4; }).length;
+  var l5=results.filter(function(r){ return r.effLevel===5; }).length;
+  var mon=results.filter(function(r){ return r.effLevel>=attConfig.monTrigger; }).length;
+
+  sumEl.style.display='grid';
+  sumEl.innerHTML=
+    '<div class="kpi"><div class="kpi-num" style="color:var(--green);">'+l0+'</div><div class="kpi-label">🟢 ปกติ</div></div>'+
+    '<div class="kpi"><div class="kpi-num" style="color:#D97706;">'+l12+'</div><div class="kpi-label">🟡🟠 สังเกต</div></div>'+
+    '<div class="kpi"><div class="kpi-num" style="color:#DC2626;">'+l34+'</div><div class="kpi-label">🔴 ติดตาม</div></div>'+
+    '<div class="kpi"><div class="kpi-num" style="color:#DC2626;">'+l5+'</div><div class="kpi-label">⛔ วิกฤต</div></div>'+
+    '<div class="kpi"><div class="kpi-num" style="color:#7C1A1A;">'+mon+'</div><div class="kpi-label">📋 Monitoring</div></div>';
+
+  var html='';
+  results.forEach(function(r){
+    var mon=getMonitoringStatus(r.name,r.effLevel,from);
+    var emp=employees.find(function(e){ return empMatchRecord(e,r.name); });
+    var pos=emp?esc(emp.pos||''):'';
+
+    html+='<div class="att-card">';
+    html+='<div class="att-card-top">';
+    html+='<div>';
+    html+='<div class="att-name">'+r.name+(pos?' <span style="font-weight:400;color:var(--text2);font-size:12px;">'+pos+'</span>':'')+'</div>';
+    html+='<div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">';
+    // Level badge
+    html+='<span class="level-badge level-'+r.effLevel+'">'+getLevelLabel(r.effLevel)+'</span>';
+    // ถ้า override แสดง system level ด้วย
+    if(attOverrides[r.name.toLowerCase()]!==undefined && attOverrides[r.name.toLowerCase()]!==r.sysLevel){
+      html+='<span style="font-size:11px;color:var(--text3);">ระบบแนะนำ: Level '+r.sysLevel+'</span>';
+    }
+    html+='</div></div>';
+    // Override control
+    html+='<div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">';
+    html+='<select class="override-select" onchange="setLevelOverride(\''+r.name+'\',this.value)">';
+    html+='<option value="">ระบบแนะนำ</option>';
+    for(var i=0;i<=5;i++) html+='<option value="'+i+'"'+(attOverrides[r.name.toLowerCase()]===i?' selected':'')+'>Override: Level '+i+'</option>';
+    html+='</select>';
+    html+='<button class="btn btn-sm" onclick="viewEmpByName(\''+r.name+'\')">ดูโปรไฟล์</button>';
+    html+='</div></div>';
+
+    // Stats
+    html+='<div style="display:flex;gap:10px;flex-wrap:wrap;margin:10px 0;">';
+    html+='<div class="kpi-chip"><span class="kpi-chip-val">'+r.leaveCount+'</span>ครั้งลา</div>';
+    html+='<div class="kpi-chip"><span class="kpi-chip-val">'+r.talkCount+'</span>ครั้งคุย</div>';
+    html+='<div class="kpi-chip"><span class="kpi-chip-val" style="color:'+(r.monFriCount>=attConfig.l2Pattern?'#DC2626':'inherit')+'">'+r.monFriCount+'</span>จ./ศ.</div>';
+    html+='</div>';
+
+    // Pattern chips
+    if(r.monFriCount>0){
+      var days=['อา','จ','อ','พ','พฤ','ศ','ส'];
+      var dayCounts={};
+      r.leaves.forEach(function(l){ var d=getDayOfWeek(l.date); dayCounts[d]=(dayCounts[d]||0)+1; });
+      html+='<div style="margin-bottom:8px;">';
+      Object.keys(dayCounts).sort().forEach(function(d){
+        if(dayCounts[d]>0) html+='<span class="pattern-chip">'+days[d]+' ×'+dayCounts[d]+'</span>';
+      });
+      html+='</div>';
+    }
+
+    // Monitoring bar
+    if(mon){
+      html+='<div style="font-size:12px;color:var(--text2);margin-bottom:4px;">📋 Monitoring: เริ่ม '+fmtThai(mon.startDate)+' · ผ่านมา '+mon.elapsed+' วัน · เหลือ '+mon.remaining+' วัน / '+mon.target+' วัน</div>';
+      html+='<div class="mon-bar"><div class="mon-bar-fill" style="width:'+mon.pct+'%;"></div></div>';
+    }
+
+    html+='</div>';
+  });
+
+  body.innerHTML=html||'<div class="empty">ไม่มีข้อมูลค่ะ</div>';
+}
+
+function setLevelOverride(name, val){
+  var k=name.toLowerCase();
+  if(val===''){ delete attOverrides[k]; }
+  else { attOverrides[k]=parseInt(val); }
+  saveAttOverrides();
+  renderAttDash();
+}
+
 /* ================================================================
    KPI & RISK SYSTEM
    ================================================================ */
@@ -2485,8 +2854,10 @@ function renderKpiRecent(){
 
 function delKpi(id){
   if(!confirm('ลบรายการ KPI นี้?')) return;
-  kpiRecords=kpiRecords.filter(function(r){ return r.id!==id; });
-  saveKpi(); renderKpiRecent();
+  kpiRecords=kpiRecords.filter(function(r){ return String(r.id)!==String(id); });
+  localStorage.setItem(KPI_KEY,JSON.stringify(kpiRecords));
+  renderKpiRecent();
+  forceSyncNow();
 }
 
 /* ---- KPI REPORT (รายเดือน) ---- */
