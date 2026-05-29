@@ -1376,15 +1376,13 @@ function saveAnnounce(){
   scheduleAutoSync();
 }
 
-/* ---- FORCE SYNC (ใช้ตอนลบ — cancel timer เก่าแล้ว sync ทันที) ---- */
+/* ---- FORCE SYNC (ใช้ตอนลบ — หยุด sync เก่าแล้วเริ่มใหม่ทันที) ---- */
 function forceSyncNow(){
+  // ยกเลิก timer ที่รอ
   if(_autoSyncTimer){ clearTimeout(_autoSyncTimer); _autoSyncTimer=null; }
-  if(_isSyncing){
-    // รอให้ sync เสร็จก่อนแล้วค่อย sync ใหม่
-    setTimeout(forceSyncNow, 500);
-    return;
-  }
-  autoSyncAllSheets();
+  // force reset สถานะ sync แล้วเริ่มใหม่ด้วยข้อมูลปัจจุบัน
+  _isSyncing=false;
+  if(_gsUrl) autoSyncAllSheets();
 }
 var _autoSyncTimer=null;
 var _isSyncing=false;
@@ -2376,8 +2374,10 @@ function deleteEmp(){
   var e=employees.find(function(x){ return String(x.id)===String(_viewEmpId); });
   if(!e) return;
   if(!confirm('ลบข้อมูลพนักงาน "'+esc(e.nick||e.name)+'" ?\nไม่สามารถกู้คืนได้ค่ะ')) return;
-  employees=employees.filter(function(x){ return x.id!==_viewEmpId; });
-  saveEmps(); switchPage('emplist'); renderEmpList();
+  employees=employees.filter(function(x){ return String(x.id)!==String(_viewEmpId); });
+  localStorage.setItem(EMP_KEY,JSON.stringify(employees));
+  switchPage('emplist'); renderEmpList();
+  forceSyncNow();
 }
 
 function addSalaryRow(){
